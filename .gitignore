@@ -1,0 +1,15 @@
+# DESIGN.md §6 -- publication rule.
+#
+# Nothing under data/ may be committed. data/raw/ holds third-party snapshots
+# whose licences grant no redistribution right (Amazon Reviews'23 and the
+# Clothing Fit datasets both carry no licence statement at all). data/processed/
+# holds working files containing raw review text -- precision_sample.csv in
+# particular. Only aggregated results and code are publishable.
+data/
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.ipynb_checkpoints/
