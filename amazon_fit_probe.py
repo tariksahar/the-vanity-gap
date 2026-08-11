@@ -773,8 +773,9 @@ def classify_gradient(segments: list[str]) -> str | None:
 # ---------------------------------------------------------------------------
 
 PRECISION_COLUMNS = [
-    "review_id_hash", "asin", "parent_asin", "category_path", "gender",
-    "body_half", "review_title", "review_text", "assigned_bucket", "human_label",
+    "review_id_hash", "asin", "parent_asin", "product_title", "category_path",
+    "gender", "body_half", "review_title", "review_text", "assigned_bucket",
+    "human_label",
 ]
 
 
@@ -824,7 +825,7 @@ def build_style_index(category: str, limit: int) -> tuple[dict, dict]:
     the DESIGN.md 1.3 assignment. Everything else is dropped here rather than
     later, so the sample is garment-scoped by construction.
     """
-    index: dict[str, tuple[str, str, str]] = {}
+    index: dict[str, tuple[str, str, str, str]] = {}
     stats = {"seen": 0, "in_scope": 0}
     for record in iter_records(f"raw_meta_{category}", category, limit):
         stats["seen"] += 1
@@ -841,7 +842,8 @@ def build_style_index(category: str, limit: int) -> tuple[dict, dict]:
         if not parent:
             continue
         stats["in_scope"] += 1
-        index[parent] = (gender, half, " | ".join(segments))
+        title = WS_RX.sub(" ", str(record.get("title") or "")).strip()
+        index[parent] = (gender, half, " | ".join(segments), title)
     return index, stats
 
 
@@ -879,7 +881,7 @@ def draw_precision_sample(category: str, review_limit: int, index: dict,
             continue
         if bucket not in FIT_DICTIONARY:
             continue
-        gender, half, path = entry
+        gender, half, path, product_title = entry
         stats["labelled"] += 1
         key = (bucket, gender)
         seen_count[key] += 1
@@ -887,6 +889,7 @@ def draw_precision_sample(category: str, review_limit: int, index: dict,
             "review_id_hash": review_id_hash(record),
             "asin": record.get("asin", ""),
             "parent_asin": parent,
+            "product_title": product_title,
             "category_path": path,
             "gender": gender,
             "body_half": half,
@@ -909,7 +912,16 @@ def draw_precision_sample(category: str, review_limit: int, index: dict,
     return rows, stats
 
 
-BLIND_COLUMNS = ["review_id_hash", "review_title", "review_text",
+# What the labeller sees. `product_title` is deliberately NOT blinded: the coding
+# rules require non-garment items to be marked `none`, and that rule cannot be
+# applied to review text alone -- "too big, returned it" is unclassifiable
+# without knowing whether the product is a t-shirt or a watch strap. The 0/4
+# ran_large precision on Amazon_Fashion was caused entirely by a purse, two watch
+# straps and a pair of glasses, so this is the error mode the sample exists to
+# measure. A product title carries no signal about WHICH BUCKET the dictionary
+# assigned, so it does not compromise the blind. It may leak gender, which is the
+# weaker cost: gender is a secondary breakdown, not the gate.
+BLIND_COLUMNS = ["review_id_hash", "product_title", "review_title", "review_text",
                  "human_label", "buyer_gender_mismatch"]
 
 
@@ -934,6 +946,7 @@ def emit_precision_sample(path: pathlib.Path, rows: list, rng: random.Random) ->
     print(f"  [key  ] wrote {key_path}  (NOT for labelling -- contains assigned_bucket)")
 
     blind = [{"review_id_hash": row["review_id_hash"],
+              "product_title": row["product_title"],
               "review_title": row["review_title"],
               "review_text": row["review_text"],
               "human_label": "",
@@ -980,14 +993,14 @@ def _emit_xlsx(path: pathlib.Path, rows: list, columns: list | None = None) -> N
         sheet.append([row[column] for column in columns])
 
     widths = {"review_id_hash": 18, "asin": 12, "parent_asin": 13,
-              "category_path": 46, "gender": 8, "body_half": 10,
+              "product_title": 52, "category_path": 46, "gender": 8, "body_half": 10,
               "review_title": 40, "review_text": 90,
               "assigned_bucket": 15, "human_label": 16,
               "buyer_gender_mismatch": 22}
     for index, column in enumerate(columns, start=1):
         letter = sheet.cell(row=1, column=index).column_letter
         sheet.column_dimensions[letter].width = widths.get(column, 14)
-        if column in ("review_title", "review_text", "category_path"):
+        if column in ("review_title", "review_text", "category_path", "product_title"):
             for cell in sheet[letter][1:]:
                 cell.alignment = Alignment(wrap_text=True, vertical="top")
 

@@ -18,6 +18,7 @@ being loaded instead, the repository is in the wrong place — fix that before d
 | **Phase 1 (Amazon probe)** | Complete — `docs/phase1-amazon-probe.md`. Corpus is `Clothing_Shoes_and_Jewelry`; it carries the primary estimand but not purchased size. Precision measurement **pending**. |
 | **Phase 1b (size deviation)** | Complete — `docs/phase1b-size-deviation-probe.md`. Real but not primary; men's-lower cell ~330 corpus-wide. |
 | **Phase 2a (dictionary validation)** | Complete — `docs/phase2-dictionary-validation.md`. Two pattern families carry nearly all the error; **no pattern removed in response**, per the pre-commitment. |
+| **Analysis window** | **2019 onward (5 years)**, set empirically 2026-08-11 — `docs/phase1c-time-window.md`. The old 12–18 month default gave 12 observations in the men's-lower anchor cell. |
 | **Sampling validity** | **Files are ordered (2026-08-11).** Prefix-based rates superseded; re-measuring under `--spread`. §5.13. |
 | **Current task** | Phase 2b — the women's-arm estimator (§4.2) → `docs/phase2-women-arm.md`. In parallel: hand-label `data/processed/precision_sample.csv`. |
 | **Schema** | Not written. Phase 1 settled the fields; write it with the Phase 2 adapters. |
@@ -861,6 +862,7 @@ the-vanity-gap/
     phase1-amazon-probe.md
     phase2-divergence-precommitment.md   # written before Phase 2 was run
     phase1b-size-deviation-probe.md
+    phase1c-time-window.md
     phase2-dictionary-validation.md
   src/
     adapters/          # one module per source, shared interface

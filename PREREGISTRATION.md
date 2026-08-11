@@ -121,8 +121,12 @@ substituted for one another.
 | ModCloth | Women's arm; dictionary ground truth | Read in full |
 | RentTheRunway | Mechanism demonstration; Chattaraman head-to-head | Read in full |
 
+**Analysis window, binding:** **2019 onward** for the primary specification, with the robustness
+ladder of §11 A1. Set empirically from composition stability and anchor-cell adequacy, not asserted.
+
 **Sampling rule, binding:** every Amazon figure comes from `--spread N` block sampling across
-disjoint file offsets. **A rate measured from a file prefix is never quoted.** This is systematic
+disjoint file offsets. This applies **inside** the analysis window too — the window does not remove
+the need for it. **A rate measured from a file prefix is never quoted.** This is systematic
 sampling, not random sampling, and will be described as such in any write-up.
 
 `Amazon_Fashion` is excluded: its `categories` field is empty in 100% of items, so it yields no cell.
@@ -139,12 +143,39 @@ belongs to neither arm.
 
 Two rules, both binding, both settled before any label is entered.
 
-**Blind.** The labelling file carries `review_id_hash`, `review_title`, `review_text`, an empty
-`human_label` and an empty `buyer_gender_mismatch`. It carries **no assigned bucket, no gender, no
-category path and no body half.** Those live in a key file the labeller does not open, re-joined on
-`review_id_hash` after labels come back. An unblinded precision measurement is not a measurement: a
-labeller shown the assigned bucket is scoring agreement with a number already in front of them. Row
-order is shuffled, so order carries no information either.
+**Blind — and precisely which fields, with the reason for each.**
+
+| Field | Shown? | Why |
+|---|---|---|
+| `review_id_hash` | shown | Join key. Carries no information. |
+| `product_title` | **shown** | See below — the coding rules cannot be applied without it. |
+| `review_title`, `review_text` | shown | The object of judgement. |
+| `human_label`, `buyer_gender_mismatch` | shown, empty | What the labeller fills in. |
+| `assigned_bucket` | **hidden** | The dictionary's guess. Showing it turns the exercise into scoring agreement with a number already in front of you. |
+| `gender`, `body_half`, `category_path` | **hidden** | The stratum. Showing it lets the labeller reconstruct the design. |
+
+Row order is shuffled, so order carries no information either. The hidden fields live in a key file
+the labeller does not open, re-joined on `review_id_hash` after labels come back.
+
+**Why `product_title` is deliberately NOT blinded.** The coding rules require non-garment items to
+be marked `none`, and that rule is not optional: the 0/4 `ran_large` precision on `Amazon_Fashion`
+was caused entirely by a purse, two watch straps and a pair of glasses. With review text alone that
+rule cannot be applied — *"too big, returned it"* is unclassifiable without knowing whether the
+product is a t-shirt or a watch strap, and that is the exact error mode the sample exists to
+measure.
+
+Blinding exists to stop the human being anchored to the dictionary's guess. **A product title
+carries no signal about which bucket was assigned**, so including it does not compromise that. It
+may leak gender, which is the weaker cost: precision by gender is a secondary breakdown, not the
+gate.
+
+There is also a consistency argument that settles it independently. The coding guide is developed
+against the discarded sample, which carries category information. Applying those rules to a file
+that lacks it would make them **unapplicable by construction** — the guide would refer to a
+distinction the labeller cannot see.
+
+An earlier version of this section blinded the product title as well. That was over-blinding, and
+it is corrected here rather than silently.
 
 **Coding guide first.** What counts as a fit judgement is decided **before** blind labelling starts,
 and is written into Appendix A of this document. It is developed on the **discarded** sample of
@@ -362,8 +393,9 @@ amendment prompted by seeing a result must say so explicitly.
 | Date | Change | Reason |
 |---|---|---|
 | 2026-08-11 | v1.0 frozen | Initial registration |
-| 2026-08-11 | **A1 - §5.8 time window reopened as an empirical question.** IN PROGRESS | See below |
+| 2026-08-11 | **A1 - §5.8 time window reopened and re-set to 5 years (2019 onward), with a robustness ladder.** COMPLETE | Regime drift measured; the 12-18 month default yields 12 anchor-cell observations |
 | 2026-08-11 | A2 - labelling made blind; coding guide required as Appendix A before labelling (§5.0) | An unblinded measurement is not a measurement |
+| 2026-08-11 | A3 - `product_title` un-blinded in the labelling file (§5.0) | The non-garment coding rule cannot be applied to review text alone; a product title carries no signal about the assigned bucket |
 
 ### A1 - the analysis window is measured, not asserted
 
@@ -402,7 +434,39 @@ directly rather than merely adding noise.
 the need for `--spread`: three blocks detect only ordering coarser than the block size, so finer
 grouping - by product or by seller - could still survive inside the window.
 
-**This entry is completed with the measured numbers and the chosen window when the probe lands.**
+**MEASURED 2026-08-11 — `docs/phase1c-time-window.md`.** Still no estimate of `tau` run, at the
+time of measurement or since.
+
+The three composition series become jointly flat from **2019**: mean review length settles into the
+163–185 band after 2015, verified-purchase share into 88–96% after 2013, and fit-label share — the
+series the outcome is built from, and the slowest to settle — into 16–18% from 2019.
+
+Anchor-cell counts by candidate window (men's lower body, per the 600,000-review sample):
+
+| window | from | **men's lower** | labelled total |
+|---|---|---|---|
+| 18 months | 2022 | **12** | 4,617 |
+| 3 years | 2021 | 151 | 36,781 |
+| **5 years** | **2019** | **307** | **66,133** |
+| 8 years | 2016 | 394 | 88,071 |
+| full history | all | 431 | 96,913 |
+
+**The 12–18 month default of §5.8 yields twelve observations in the anchor cell and is therefore
+unavailable** — not underpowered, unavailable: twelve style-clustered observations cannot support
+the placebo test that carries the identification claim.
+
+**PRIMARY WINDOW: 5 years, 2019 onward.** It is the only candidate satisfying both criteria at
+once — it begins where composition flattens, and it gives the anchor cell 307 observations, 25× the
+18-month figure. Extending to 8 years buys 87 more anchor observations at the cost of readmitting
+2016–2018, when fit-label share was still drifting; that trade belongs on the ladder, not in the
+primary.
+
+**ROBUSTNESS LADDER, published whole:** 18 months (flagged underpowered, present for completeness
+only), 3 years, **5 years (primary)**, 8 years, full history (with the survivorship caveat
+attached). `tau` is estimated at every rung. Monotone movement across the ladder is itself a finding
+and is reported as one, not resolved by choosing a rung.
+
+**Amendment complete.** The window is fixed at 2019 onward for the primary specification.
 
 
 ---

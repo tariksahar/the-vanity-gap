@@ -334,7 +334,7 @@ def probe(category: str, review_limit: int, item_limit: int,
             continue
         joined += 1
         joined_pairs += 1
-        gender, half, _path = entry
+        gender, half, _path, _title = entry
         cells[(gender, half)] += 1
         cell_dev_sum[(gender, half)] += found["deviation"]
 

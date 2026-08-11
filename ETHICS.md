@@ -38,12 +38,28 @@ citation request is an academic courtesy, not a licence, and it grants nothing a
 Local working files containing raw text — `data/processed/precision_sample.csv` and its `.xlsx`
 twin — are permanently git-ignored, including after they are labelled.
 
-### 1.3 Enquiry sent to the McAuley Lab
+### 1.3 Enquiry — sent via public, timestamped channels
 
-**Status: DRAFTED, NOT SENT — awaiting the repository owner's approval.**
+**Approved 2026-08-11. Posted publicly rather than by email.**
 
-Recipient, date sent, and any reply are recorded in §1.5 below when they exist. The draft is in
-§1.4 so that the exact wording asked is on the record, not a summary of it.
+The channel matters as much as the message. §1.6's lapse policy turns on there being a documented
+request; an email is a record only we can attest to, whereas a public post is timestamped and
+**verifiable by any third party**. Public posting also raises the chance of an answer, since other
+users plausibly have the same question and the reply serves all of them.
+
+| Channel | Status |
+|---|---|
+| GitHub — `hyp1231/AmazonReviews2023` issue | **POSTED** — see §1.5 |
+| Hugging Face Discussions — `McAuley-Lab/Amazon-Reviews-2023` | **NOT POSTED** — blocked, see below |
+| Email | Not sent — no appropriate address identified with confidence |
+
+**The Hugging Face post could not be made from this environment: no Hugging Face account token is
+configured, and Discussions require an authenticated account.** This is a gap in the record, not a
+completed step, and it is listed as outstanding rather than quietly dropped. It needs the repository
+owner to post it from their own Hugging Face account — the wording in §1.4 can be used unchanged.
+
+The McAuley Lab Clothing Fit datasets (ModCloth, RentTheRunway) have **no public issue tracker or
+discussion forum**, so no public channel exists for them; that enquiry remains email-only and unsent.
 
 ### 1.4 Draft message
 
@@ -81,16 +97,19 @@ Recipient, date sent, and any reply are recorded in §1.5 below when they exist.
 
 ### 1.5 Record of correspondence
 
-| Date | Direction | Summary |
-|---|---|---|
-| — | — | Nothing sent yet. |
+| Date | Channel | Direction | Summary |
+|---|---|---|---|
+| 2026-08-11 | GitHub issue [hyp1231/AmazonReviews2023#50](https://github.com/hyp1231/AmazonReviews2023/issues/50) | sent | Asked what terms apply to derived data, whether record-level derived data may be redistributed in a replication package, and whether quoting individual reviews in a paper is restricted. Stated the conservative working assumption. |
+| — | Hugging Face Discussions | **outstanding** | Cannot post — no account token in the working environment. Requires the repository owner to post from their own account. |
+| — | Email (Clothing Fit datasets) | **outstanding** | No public channel exists for these; no address confirmed. |
 
 ### 1.6 If no reply arrives — decided in advance
 
 Recorded now rather than discovered late.
 
-- **After 4 weeks with no reply:** send one polite follow-up, logged in §1.5.
-- **After 8 weeks with no reply:** treat the position as unresolved **permanently**. The
+- **Clock starts 2026-08-11**, the date of the first public post.
+- **After 4 weeks with no reply (by 2026-09-08):** one polite follow-up, logged in §1.5.
+- **After 8 weeks with no reply (by 2026-10-06):** treat the position as unresolved **permanently**. The
   conservative reading in §1.2 becomes final and is not revisited.
 - **Consequence, accepted:** the §4.4 open-dataset deliverable ships as **aggregates only**. It is
   not silently dropped, and it is not silently expanded. The paper states that terms could not be
