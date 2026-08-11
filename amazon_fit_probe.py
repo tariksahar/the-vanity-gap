@@ -331,14 +331,93 @@ def _iter_http_jsonl(url: str, limit: int):
                 yield json.loads(line)
 
 
+def _file_size(url: str) -> int:
+    request = urllib.request.Request(url, method="HEAD",
+                                     headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(request) as response:
+        return int(response.headers["Content-Length"])
+
+
+def _iter_range(url: str, start: int, limit: int):
+    """Yield up to `limit` records beginning at byte offset `start`.
+
+    The first line after a non-zero offset is a fragment of the record spanning
+    the boundary, so it is discarded.
+    """
+    headers = {"User-Agent": USER_AGENT, "Range": f"bytes={start}-"}
+    request = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(request) as response:
+        if start > 0 and response.status != 206:
+            raise RuntimeError("server ignored Range; cannot block-sample")
+        reader = io.TextIOWrapper(response, encoding="utf-8", errors="replace")
+        if start > 0:
+            reader.readline()
+        yielded = 0
+        for line in reader:
+            if yielded >= limit:
+                return
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            yielded += 1
+            yield record
+
+
+def iter_records_spread(config: str, category: str, limit: int, blocks: int = 8):
+    """Read `limit` records spread evenly across `blocks` disjoint file offsets.
+
+    THE REASON THIS EXISTS: `iter_records` reads a PREFIX. The sampling-frame
+    check of 2026-08-11 (`sampling_frame_probe.py`,
+    docs/phase1-amazon-probe.md 6) established that these files are ORDERED --
+    `verified_purchase` runs 64.88% -> 94.75% and mean review length 316 -> 142
+    characters from head to tail, which is a time gradient. A prefix therefore
+    samples the oldest reviews, not the corpus, and every rate derived from one
+    is biased.
+
+    Spreading the read across the file does not give a random sample either --
+    within a block, records are still contiguous. It gives a systematic sample
+    with a large number of well-separated start points, which removes the
+    first-order bias from file order. State it that way; do not call it random.
+    """
+    url = _hf_url(config, category)
+    size = _file_size(url)
+    per_block = max(1, limit // blocks)
+    print(f"  [reader] block-sampled: {blocks} blocks x {per_block:,} records "
+          f"across {size / 1e9:.1f} GB")
+    # The last block starts short of EOF so it can still yield a full block.
+    span = size // blocks
+    for index in range(blocks):
+        start = min(index * span, max(0, size - span // 2))
+        yielded = 0
+        for record in _iter_range(url, start, per_block):
+            yielded += 1
+            yield record
+        if yielded == 0 and index > 0:
+            return
+
+
+SPREAD_BLOCKS = 0   # 0 = prefix read (biased, see iter_records_spread); >0 = block-sampled
+
+
 def iter_records(config: str, category: str, limit: int):
     """Yield up to `limit` records from a config, streaming only.
+
+    Routes to `iter_records_spread` when SPREAD_BLOCKS is set, so every probe
+    picks up block sampling without changing its own call sites.
 
     Tries the HuggingFace streaming reader first (DESIGN.md 3.1). If the hub's
     dataset script cannot be loaded -- recent `datasets` releases dropped script
     support -- falls back to reading the published .jsonl over HTTPS. Both paths
     are stream-only and stop early; neither downloads the file.
     """
+    if SPREAD_BLOCKS:
+        yield from iter_records_spread(config, category, limit, SPREAD_BLOCKS)
+        return
+
     try:
         from datasets import load_dataset
 
@@ -812,6 +891,68 @@ def emit_precision_sample(path: pathlib.Path, rows: list, rng: random.Random) ->
         writer = csv.DictWriter(handle, fieldnames=PRECISION_COLUMNS)
         writer.writeheader()
         writer.writerows(rows)
+    _emit_xlsx(path.with_suffix(".xlsx"), rows)
+
+
+def _emit_xlsx(path: pathlib.Path, rows: list) -> None:
+    """Same rows, same columns, as a workbook.
+
+    Review text contains commas, quotes and newlines, which is exactly what a
+    hand-labeller in a spreadsheet should not have to fight. The xlsx is the
+    labelling surface; the csv stays as the machine-readable copy. Both are
+    git-ignored permanently -- they carry raw review text (DESIGN.md 6).
+    """
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Font, PatternFill
+        from openpyxl.worksheet.datavalidation import DataValidation
+    except ImportError:
+        print("  [xlsx] openpyxl not installed; wrote csv only  (pip install openpyxl)")
+        return
+
+    book = Workbook()
+    sheet = book.active
+    sheet.title = "precision_sample"
+    sheet.append(PRECISION_COLUMNS)
+
+    header_fill = PatternFill("solid", fgColor="DDDDDD")
+    for cell in sheet[1]:
+        cell.font = Font(bold=True)
+        cell.fill = header_fill
+    sheet.freeze_panes = "A2"
+
+    for row in rows:
+        sheet.append([row[column] for column in PRECISION_COLUMNS])
+
+    widths = {"review_id_hash": 18, "asin": 12, "parent_asin": 13,
+              "category_path": 46, "gender": 8, "body_half": 10,
+              "review_title": 40, "review_text": 90,
+              "assigned_bucket": 15, "human_label": 15}
+    for index, column in enumerate(PRECISION_COLUMNS, start=1):
+        letter = sheet.cell(row=1, column=index).column_letter
+        sheet.column_dimensions[letter].width = widths.get(column, 14)
+        if column in ("review_title", "review_text", "category_path"):
+            for cell in sheet[letter][1:]:
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+
+    # Constrain the label column so the returned file is machine-readable.
+    label_index = PRECISION_COLUMNS.index("human_label") + 1
+    label_letter = sheet.cell(row=1, column=label_index).column_letter
+    validation = DataValidation(
+        type="list",
+        formula1='"ran_small,true_to_size,ran_large,none,unclear"',
+        allow_blank=True,
+        showDropDown=False,
+    )
+    validation.prompt = ("The bucket YOU judge correct from the text. "
+                         "Use 'none' if the text carries no fit judgement, "
+                         "'unclear' if you cannot tell.")
+    validation.promptTitle = "human_label"
+    sheet.add_data_validation(validation)
+    validation.add(f"{label_letter}2:{label_letter}{len(rows) + 1}")
+
+    book.save(path)
+    print(f"  [xlsx] wrote {path}")
 
 
 # ---------------------------------------------------------------------------
@@ -948,6 +1089,9 @@ def main() -> int:
                         help="example matches printed per bucket (default 4)")
     parser.add_argument("--seed", type=int, default=20260808,
                         help="seed for example sampling, for reproducibility")
+    parser.add_argument("--spread", type=int, default=0,
+                        help="block-sample across N disjoint file offsets "
+                             "instead of reading a prefix (0 = prefix, biased)")
     parser.add_argument("--skip-reviews", action="store_true")
     parser.add_argument("--skip-meta", action="store_true")
     parser.add_argument("--precision-sample", action="store_true",
@@ -962,6 +1106,9 @@ def main() -> int:
     args = parser.parse_args()
 
     rng = random.Random(args.seed)
+
+    global SPREAD_BLOCKS
+    SPREAD_BLOCKS = args.spread
 
     if args.precision_sample:
         return run_precision_sample(args, rng)

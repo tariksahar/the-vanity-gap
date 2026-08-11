@@ -16,6 +16,13 @@ because no capture was retained).
 > analysis and the Chattaraman head-to-head cannot be run on this corpus. Live candidate for
 > Phase 3, conditional on the precision measurement.**
 
+> **SUPERSEDED RATES — read §5.6 first.** On 2026-08-11 the source files were found to be
+> **ordered** (a time gradient: `verified_purchase` 64.88% → 94.75%, mean review length 316 → 142
+> characters from head to tail). Every rate in this document was measured from a file **prefix** and
+> is therefore biased toward the corpus's oldest reviews. The structural findings — no `asin` field,
+> `Amazon_Fashion` categories empty, no licence — are unaffected. The rates are being re-measured
+> under block sampling (`--spread`).
+
 **The precision number is PENDING.** It is the binding gate measure (§4.1) and it is not yet
 established. `data/processed/precision_sample.csv` has been drawn for hand-labelling; §5 below gives
 the sampling procedure. Until those labels exist, this corpus is a candidate and nothing more.
@@ -282,6 +289,149 @@ Not resolvable from `categories`. Three partial routes, none free:
 Belongs in `PREREGISTRATION.md` as a named threat with a chosen handling rule. It also applies to
 the ModCloth and RentTheRunway arms only trivially — both are women-only platforms, so there is no
 cross-gender cell for it to contaminate.
+
+---
+
+## 5.6 SAMPLING VALIDITY — the files are ordered, and every rate above is biased
+
+**Added 2026-08-11. Instrument: `sampling_frame_probe.py`. This section invalidates the rates in
+§2, §3.2 and §5.2 of this document, and the prevalence figures in
+`docs/phase1b-size-deviation-probe.md`.**
+
+Every number in this document was measured by streaming the **first N records** of the source file.
+That is a prefix, not a sample. If the file carries any order, the rates describe a slice.
+
+Three disjoint 50,000-record blocks were read by HTTP range request — head, middle and tail of the
+27.81 GB review file and the 17.96 GB metadata file. They **do not agree.**
+
+### Reviews
+
+| measure | head | middle | tail | spread |
+|---|---|---|---|---|
+| **usable fit label** | 19.33% | 16.28% | 13.81% | **5.52pp** |
+| `ran_small` | 7.09% | 6.19% | 5.12% | 1.97pp |
+| `true_to_size` | 8.77% | 6.75% | 6.12% | 2.65pp |
+| `ran_large` | 3.47% | 3.34% | 2.57% | 0.90pp |
+| **`verified_purchase`** | 64.88% | 86.58% | **94.75%** | **29.87pp** |
+| mean rating | 4.35 | 4.25 | 3.95 | — |
+| **mean text length (chars)** | **316** | 233 | **142** | — |
+
+### Metadata
+
+| measure | head | middle | tail | spread |
+|---|---|---|---|---|
+| **both gender and half recovered** | 23.63% | 20.51% | 19.68% | **3.96pp** |
+| gender: men | 25.71% | 24.27% | 27.42% | 3.14pp |
+| gender: women | 59.11% | 59.26% | 56.37% | 2.89pp |
+| half: upper | 17.97% | 16.46% | 16.03% | 1.94pp |
+| half: lower | 8.40% | 6.39% | 6.10% | 2.30pp |
+
+At n=50,000 the standard error on a 20% rate is 0.18pp, so these spreads are 10–160 standard errors.
+This is not sampling noise.
+
+### What the ordering is
+
+`verified_purchase` climbing 64.88% → 94.75% and mean review length falling 316 → 142 characters,
+both monotone across the file, is a **time gradient**. Amazon's verified-purchase share rose sharply
+over the 2010s and review length fell as the platform shifted to mobile. The file is ordered oldest
+to newest, or by something that tracks it closely.
+
+**So the 50,000-review prefix used throughout this document is a sample of the corpus's oldest
+reviews** — longer, more discursive, less often verified. Longer reviews contain more fit language,
+which is exactly why the head shows the highest fit-label share.
+
+### What this invalidates, and what survives
+
+**Invalidated as corpus estimates — every level:**
+
+- the 19.51% usable-fit-label share (§2). The three blocks average about 16.5%, and even that is
+  three points, not an estimate;
+- the 23.87% gender-and-half recovery rate and all four cell counts (§5.2), including the
+  **759 men's-lower figure** that the §4.1 gate turned on;
+- the 0.20% self-reported-deviation prevalence and the ~131,000 extrapolation;
+- the `details` size-key rates in §3.2.
+
+**Survives, with reasons:**
+
+- **The structural findings.** No `asin` field in the metadata, 100% empty `categories` on
+  `Amazon_Fashion`, no licence statement — these are facts about file structure, not rates. A
+  different sample cannot produce an `asin` field.
+- **The `ran_small` : `ran_large` ratio.** 2.04, 1.85, 1.99 across the three blocks — stable, so the
+  §2 observation that reports skew roughly two-to-one toward "ran small" holds even though its
+  levels do not.
+- **The Phase 2a dictionary validation.** ModCloth and RentTheRunway were read **in full**, not
+  sampled. Every number in `docs/phase2-dictionary-validation.md` is unaffected.
+
+**Newly suspect:** the upper:lower ratio drifts (2.14, 2.58, 2.63), so cell *balance* — not just
+cell size — depends on where in the file you read. The men's-lower cell must be re-measured before
+the §4.1 gate verdict on it means anything.
+
+### The fix, and its honest limits
+
+`iter_records_spread` in `amazon_fit_probe.py` reads `N` records spread across `blocks` disjoint
+offsets. Every probe takes `--spread N`:
+
+```bash
+python amazon_fit_probe.py --category Clothing_Shoes_and_Jewelry --reviews 50000 --items 30000 --spread 10
+```
+
+**This is systematic sampling, not random sampling, and it must not be described as random.** Within
+a block the records are still contiguous. It removes the first-order bias from file order; it does
+not make the sample exchangeable. Proper random sampling of a 27.81 GB remote file without
+downloading it would need either an index or many small range requests, and neither is justified for
+a feasibility probe.
+
+**A second limit, which cuts the other way.** Three blocks can only detect ordering *coarser* than
+the block size. If the file is grouped into runs shorter than 50,000 records — by seller, or by
+product — three blocks would look identical while a prefix remained unrepresentative. Agreement in
+this test would have been evidence of exchangeability, never proof of it. As it happens the test
+found divergence, so this caveat matters less here than it would have if the answer had been clean.
+
+### Corrected rates — re-run 2026-08-11 under `--spread 10`
+
+`Clothing_Shoes_and_Jewelry`, 50,000 reviews and 30,000 items, block-sampled across ten disjoint
+offsets. **These supersede the tables in §2 and §5.2.**
+
+| Measure | Prefix (superseded) | **Block-sampled** | Change |
+|---|---|---|---|
+| usable fit label | 19.51% | **16.23%** | −3.28pp |
+| ambiguous, dropped | 1.80% | 1.17% | −0.63pp |
+| `ran_small` (of labelled) | 36.74% | 36.42% | −0.32pp |
+| `true_to_size` (of labelled) | 44.80% | 43.69% | −1.11pp |
+| `ran_large` (of labelled) | 18.46% | 19.89% | +1.43pp |
+| gender **and** half recovered | 23.87% | **21.38%** | −2.49pp |
+| gender: women / men | 59.07% / 25.83% | 59.21% / 24.92% | ≈ stable |
+| half: upper / lower | 17.94% / 8.53% | 16.94% / 6.73% | lower −1.80pp |
+
+Corrected four cells, per 30,000 items:
+
+| | upper | lower |
+|---|---|---|
+| **men** | 1,786 | **564** |
+| **women** | 2,930 | 1,133 |
+
+**The men's-lower cell is 564, not 759 — 8.79% of the four cells rather than 10.60%.** It still does
+not vanish, so the §4.1 gate row still passes, but it is a quarter smaller than reported and it is
+the cell that governs power. The `ran_small` : `ran_large` ratio is 1.83 against the prefix's 1.99,
+confirming that the two-to-one skew was the one thing the prefix got approximately right.
+
+The direction of every correction is the one the time gradient predicts: the old, long reviews at the
+head of the file carry more fit language and more completely populated metadata than the corpus does.
+
+**Still to re-measure under `--spread`:** the `details` size rates (§3.2 — expected to move very
+little, since 0.82% has nowhere to fall), the self-reported-deviation prevalence
+(`docs/phase1b-size-deviation-probe.md`), and the precision sample's sampling frame — the drawn
+sample in `data/processed/precision_sample.csv` came from a prefix join, so its 300 rows
+over-represent old reviews. **The hand-labelling is still worth doing on it**: precision is a
+property of the dictionary against text, and there is no strong reason it should differ by review
+age. That is an assumption, it is recorded here as one, and it can be checked later by re-drawing
+under `--spread` and comparing.
+
+### Standing
+
+All rates in this document are marked **superseded**; the corrected table above replaces the ones
+re-measured so far. The gate verdict in §7 is restored for the men's-lower row at the corrected
+value of 564 (8.79%) and for the labelled-review row at 16.23%. The structural rows never moved.
 
 ---
 

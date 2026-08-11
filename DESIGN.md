@@ -18,6 +18,7 @@ being loaded instead, the repository is in the wrong place — fix that before d
 | **Phase 1 (Amazon probe)** | Complete — `docs/phase1-amazon-probe.md`. Corpus is `Clothing_Shoes_and_Jewelry`; it carries the primary estimand but not purchased size. Precision measurement **pending**. |
 | **Phase 1b (size deviation)** | Complete — `docs/phase1b-size-deviation-probe.md`. Real but not primary; men's-lower cell ~330 corpus-wide. |
 | **Phase 2a (dictionary validation)** | Complete — `docs/phase2-dictionary-validation.md`. Two pattern families carry nearly all the error; **no pattern removed in response**, per the pre-commitment. |
+| **Sampling validity** | **Files are ordered (2026-08-11).** Prefix-based rates superseded; re-measuring under `--spread`. §5.13. |
 | **Current task** | Phase 2b — the women's-arm estimator (§4.2) → `docs/phase2-women-arm.md`. In parallel: hand-label `data/processed/precision_sample.csv`. |
 | **Schema** | Not written. Phase 1 settled the fields; write it with the Phase 2 adapters. |
 
@@ -687,6 +688,35 @@ Two genders × three categories × cuts × years × brands is a large surface, a
 control adds a second with-and-without axis on top of §1.7's, making four core specifications before
 any subgroup. `PREREGISTRATION.md` must name **one** primary test; everything else is exploratory
 and labelled as such. Do not report an exploratory result with a confirmatory tone.
+
+### 5.13 Reading a file prefix is not sampling
+
+**Found 2026-08-11, after six rates had already been published on the strength of it.**
+
+The Amazon `.jsonl` files are **ordered**. Across three disjoint 50,000-record blocks,
+`verified_purchase` runs 64.88% → 86.58% → 94.75% and mean review length runs 316 → 233 → 142
+characters. That is a time gradient, so the head of the file is the oldest reviews — longer, more
+discursive, and carrying more fit language than the corpus does.
+
+Every rate measured by streaming the first N records was therefore biased, including the
+fit-label share, the gender and body-half distributions, all four cell counts, and the
+self-reported-deviation prevalence. Details and the full table: `docs/phase1-amazon-probe.md` §5.6.
+
+**Standing rules from this:**
+
+1. **Never quote a rate measured from a prefix.** Use `--spread N` on every probe; it reads across
+   `N` disjoint offsets via HTTP range requests.
+2. **Call it systematic sampling, not random sampling.** Records within a block are still
+   contiguous. It removes first-order file-order bias and nothing more.
+3. **A three-block agreement is evidence of exchangeability, not proof.** Blocks cannot detect
+   structure finer than the block size — grouping by seller or product would hide inside one.
+4. **Structural facts are exempt.** The absence of an `asin` field, or a field being empty in 100%
+   of a sample, is a claim about file structure and does not depend on where you read.
+5. **Datasets read in full are exempt.** ModCloth and RentTheRunway are read end to end, so
+   `docs/phase2-dictionary-validation.md` is unaffected.
+
+This trap generalises beyond this corpus: **any** bounded read of an ordered source has it, and
+"stream the first N" is the default idiom for large remote files. Assume order until it is tested.
 
 ### 5.11 Self-reported size deviation — a second route to the hypothesis
 

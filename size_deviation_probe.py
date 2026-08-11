@@ -95,6 +95,16 @@ BOUGHT_PATTERNS = [
 USUAL_RX = [(p, re.compile(p)) for p in USUAL_PATTERNS]
 BOUGHT_RX = [(p, re.compile(p)) for p in BOUGHT_PATTERNS]
 
+# A disjunctive size -- "a small or medium", "l/xl" -- names a RANGE, not a
+# point on the ladder. The 2026-08-08 hand-check found the extractor silently
+# resolving these to the first term, and in two of the three observed cases that
+# INFLATED the measured deviation ("usually a small or medium, ordered a medium"
+# was recorded as +1 when the honest reading is 0). Ambiguity is a drop, never a
+# guess (DESIGN.md 5.1), so any disjunctive size in the review drops the record.
+# Deliberately conservative: it fires on a disjunction anywhere in the text, not
+# only inside the matched phrase.
+DISJUNCTIVE_SIZE_RX = re.compile(rf"\b{SIZE}\s*(?:/|\s+or\s+|\s*-\s*){SIZE}\b")
+
 # A numeric size anywhere near the sizing language means the review is using a
 # ladder this probe cannot place. Drop rather than guess (DESIGN.md 5.3).
 NUMERIC_SIZE_RX = re.compile(
@@ -133,6 +143,9 @@ def extract_sizes(title: str, text: str) -> dict | None:
     if NUMERIC_SIZE_RX.search(blob):
         return None
 
+    if DISJUNCTIVE_SIZE_RX.search(blob):
+        return None
+
     usual, bought = usual_hits.pop(), bought_hits.pop()
     return {
         "usual": usual,
@@ -142,6 +155,120 @@ def extract_sizes(title: str, text: str) -> dict | None:
         "bought_pattern": bought_pattern,
         "blob": blob,
     }
+
+
+def build_seller_index(category: str, limit: int) -> tuple[dict, dict]:
+    """parent_asin -> (gender, half, store) for in-scope styles.
+
+    Separate from build_style_index because it additionally captures `store`,
+    which is what the DESIGN.md 5.9 calibration test needs.
+    """
+    from amazon_fit_probe import ROOT_SEGMENTS, classify_gender, classify_half
+
+    index: dict[str, tuple[str, str, str]] = {}
+    stats = {"seen": 0, "in_scope": 0, "no_store": 0}
+    for record in iter_records(f"raw_meta_{category}", category, limit):
+        stats["seen"] += 1
+        cats = record.get("categories") or []
+        if isinstance(cats, str):
+            cats = [cats]
+        segments = [WS_RX.sub(" ", str(c)).strip().lower() for c in cats if c]
+        if not segments:
+            continue
+        gender = classify_gender(" | ".join(segments))
+        if gender not in ("men", "women"):
+            continue
+        half = classify_half([s for s in segments if s not in ROOT_SEGMENTS])
+        if half not in ("upper", "lower"):
+            continue
+        parent = record.get("parent_asin")
+        if not parent:
+            continue
+        store = (record.get("store") or "").strip()
+        if not store:
+            stats["no_store"] += 1
+            store = "(unnamed store)"
+        stats["in_scope"] += 1
+        index[parent] = (gender, half, store)
+    return index, stats
+
+
+def probe_sellers(category: str, review_limit: int, item_limit: int) -> dict:
+    """Is the observed deviation the buyer's desire or the seller's ruler?
+
+    DESIGN.md 5.9. Amazon is a marketplace. A large share of apparel sellers use
+    non-US sizing that runs small, and "order two sizes up" is a review genre
+    rather than a preference. If a small number of stores account for most of the
+    positive deviation, the measurement is calibration, not behaviour. If it is
+    spread thinly across many sellers, it is behavioural.
+    """
+    index, meta_stats = build_seller_index(category, item_limit)
+
+    per_store = collections.defaultdict(lambda: {"n": 0, "sum": 0, "pos": 0})
+    per_store_gender = collections.defaultdict(lambda: collections.Counter())
+    scanned = joined = 0
+
+    for record in iter_records(f"raw_review_{category}", category, review_limit):
+        scanned += 1
+        title, text = record.get("title", ""), record.get("text", "")
+        blob = WS_RX.sub(" ", f"{title or ''} {text or ''}".lower()).strip()
+        if "size" not in blob and "wear" not in blob and "order" not in blob:
+            continue
+        found = extract_sizes(title, text)
+        if found is None:
+            continue
+        identity = buyer_flags(title, text)
+        if identity["third_party"] or identity["cross_gender"]:
+            continue
+        entry = index.get(record.get("parent_asin"))
+        if entry is None:
+            continue
+        joined += 1
+        gender, half, store = entry
+        bucket = per_store[store]
+        bucket["n"] += 1
+        bucket["sum"] += found["deviation"]
+        if found["deviation"] > 0:
+            bucket["pos"] += 1
+            per_store_gender[store][gender] += 1
+
+    return {"meta_stats": meta_stats, "scanned": scanned, "joined": joined,
+            "per_store": dict(per_store), "per_store_gender": dict(per_store_gender)}
+
+
+def report_sellers(res: dict) -> None:
+    per_store = res["per_store"]
+    rule("SELLER CALIBRATION vs BUYER BEHAVIOUR (DESIGN.md 5.9)")
+    print(f"reviews scanned {res['scanned']:,}   joined with a store {res['joined']:,}")
+    if not per_store:
+        print("no joined observations; nothing to report")
+        return
+
+    total_pos = sum(v["pos"] for v in per_store.values())
+    total_n = sum(v["n"] for v in per_store.values())
+    print(f"distinct stores {len(per_store):,}   positive-deviation observations {total_pos:,}")
+
+    ranked = sorted(per_store.items(), key=lambda kv: kv[1]["pos"], reverse=True)
+    print("\nconcentration of POSITIVE deviation:")
+    cumulative = 0
+    for k in (1, 5, 10, 25, 50):
+        cumulative = sum(v["pos"] for _, v in ranked[:k])
+        print(f"  top {k:>3} stores  {cumulative:>6,}  {pct(cumulative, total_pos)} of positive deviation")
+
+    shares = [v["pos"] / total_pos for _, v in ranked if total_pos]
+    hhi = sum(s * s for s in shares)
+    print(f"\n  HHI {hhi:.4f}   (1/n = {1 / len(per_store):.4f} if perfectly spread)")
+    print(f"  effective number of stores  {1 / hhi:.1f}" if hhi else "")
+    print("\n  Reading: concentration near the spread benchmark => behavioural.")
+    print("  A handful of stores carrying most of it => the seller's ruler, not the buyer's desire.")
+
+    print("\ntop 15 stores by positive-deviation count:")
+    print(f"{'store':<34}{'n':>7}{'mean dev':>10}{'pos':>7}{'men':>6}{'women':>7}")
+    for store, value in ranked[:15]:
+        mean = value["sum"] / value["n"] if value["n"] else 0.0
+        genders = res["per_store_gender"].get(store, {})
+        print(f"{store[:33]:<34}{value['n']:>7,}{mean:>+10.2f}{value['pos']:>7,}"
+              f"{genders.get('men', 0):>6,}{genders.get('women', 0):>7,}")
 
 
 def probe(category: str, review_limit: int, item_limit: int,
@@ -291,9 +418,24 @@ def main() -> int:
     parser.add_argument("--category", default="Clothing_Shoes_and_Jewelry")
     parser.add_argument("--examples", type=int, default=15)
     parser.add_argument("--seed", type=int, default=20260808)
+    parser.add_argument("--spread", type=int, default=0,
+                        help="block-sample across N disjoint file offsets "
+                             "(0 = prefix read, which is biased -- see DESIGN.md 5.13)")
+    parser.add_argument("--by-seller", action="store_true",
+                        help="run the DESIGN.md 5.9 seller-calibration test instead")
     args = parser.parse_args()
 
     rng = random.Random(args.seed)
+
+    import amazon_fit_probe
+    amazon_fit_probe.SPREAD_BLOCKS = args.spread
+
+    if args.by_seller:
+        rule(f"SELLER CALIBRATION TEST -- {args.category}")
+        print(f"reviews {args.reviews:,}   meta {args.items:,}")
+        report_sellers(probe_sellers(args.category, args.reviews, args.items))
+        rule("END")
+        return 0
     rule(f"SELF-REPORTED SIZE DEVIATION PROBE -- {args.category}")
     print(f"reviews {args.reviews:,}   meta {args.items:,}   seed {args.seed}")
     print("stream-only: nothing is downloaded, nothing is written to disk")

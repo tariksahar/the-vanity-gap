@@ -108,14 +108,41 @@ The third-party filter removed 37 pairs (2.28%), and the sampled extractions sho
 where one person's usual size is paired with another person's purchase are meaningless, not merely
 suspect, so they are dropped rather than flagged here.
 
+## 4b. Seller calibration test — attempted 2026-08-11, INCONCLUSIVE
+
+Is the +0.708 the buyer's desire or the seller's ruler? Amazon is a marketplace and many apparel
+sellers use non-US sizing that runs small, so "order two sizes up" may be a **review genre** rather
+than a preference. If that skews female — plausible, since overseas fast-fashion does — the measured
+gender gap is a sizing-standard artefact.
+
+`size_deviation_probe.py --by-seller` decomposes positive deviation by `store`. Run on 400,000
+block-sampled reviews against a 200,000-record metadata index, it produced **21 positive-deviation
+observations across 31 stores.**
+
+**That is not enough to answer anything, and no concentration statistic is quoted from it.** The
+largest single store held 4 of the 21, which on this sample size is indistinguishable from chance.
+
+The arithmetic of the constraint: the deviation language appears in 0.20% of reviews, and the
+metadata join keeps roughly a quarter of those. Reaching ~1,000 positive-deviation observations —
+enough for a credible HHI — needs on the order of **20 million streamed reviews**. That is a long
+but feasible background run against a 27.81 GB file, and it is the next step if this measure is to
+be used at all.
+
+**Standing: the threat is OPEN.** `PREREGISTRATION.md` §9.1 records it as unresolved and forbids
+publishing any result resting on the deviation measure until it is closed. One incidental
+observation: 20 of the 21 were women's garments, consistent with §3's 9 : 1 asymmetry.
+
 ## 5. What to do with it
 
 1. **Not the primary measure.** The men's lower cell forbids it.
 2. **Triangulation on the women's arm**, where cells are adequate (306 and 54 per 800k, so roughly
    25,000 and 4,500 corpus-wide). If the women's `fit_score` result and the women's direct-deviation
    result agree, that is genuine convergent evidence from two different constructs.
-3. **Fix the disjunctive-size defect** before any use beyond feasibility.
-4. **Model its selection separately.** §5.11 already forbids inheriting the §5.2 reporting model;
+3. **Fix the disjunctive-size defect** before any use beyond feasibility. *Done 2026-08-11 —
+   `small or medium`, `l/xl` and `l-xl` now drop as ambiguous. Prevalence and the +0.708 have NOT
+   been re-measured under the fix, so both remain upward-biased.*
+4. **Close the seller-calibration question** (§4b) before the measure is used at all.
+5. **Model its selection separately.** §5.11 already forbids inheriting the §5.2 reporting model;
    this probe's 21.8%-zero-deviation figure shows why in one number.
-5. **The 9:1 gender asymmetry in sizing talk is worth reporting in its own right**, alongside §5.2's
+6. **The 9:1 gender asymmetry in sizing talk is worth reporting in its own right**, alongside §5.2's
    prompted-response asymmetry. Two independent corpora now show men writing less about size.

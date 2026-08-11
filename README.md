@@ -61,10 +61,28 @@ Findings and their reasoning live in [`docs/`](docs/). The two worth reading fir
 validation routes would be interpreted. Its commit predates the results it governs; that is the
 point of it.
 
+## Local setup
+
+One step, and it is not carried by the repository. This project's design document is `DESIGN.md`.
+If your editor or assistant tooling expects instructions in a differently-named file at the
+repository root, create that pointer yourself, locally, and exclude it from version control:
+
+```bash
+POINTER=<the filename your tooling loads>
+printf '# Project instructions\n\nThe design document for this repository is **`DESIGN.md`**. Read it fully before touching any file.\n' > "$POINTER"
+printf '\n# Local-only editor pointer file; not part of the project.\n%%s\n' "$POINTER" >> .git/info/exclude
+```
+
+`.git/info/exclude` is local to a single working copy and is **not** cloned, which is why this
+cannot be done for you and why a fresh clone will not have it. Substitute whatever filename your
+tooling looks for. `DESIGN.md` is the single source of truth either way; the pointer only exists so
+that a tool which auto-loads a fixed filename still finds its way there.
+
 ## Reproducing the probes
 
-Python 3.11+. No third-party packages are required — the probes read published `.jsonl` over HTTPS
-line by line and stop at the requested count. `datasets` is used if installed, but its script-based
+Python 3.11+. The probes need no third-party packages — they read published `.jsonl` over HTTPS
+line by line and stop at the requested count. `openpyxl` is optional, and only used to write the
+hand-labelling workbook alongside its CSV. `datasets` is used if installed, but its script-based
 loader path no longer works with `datasets` 5.x, so the HTTPS fallback is the supported route.
 
 ```bash
@@ -112,8 +130,10 @@ grant, redistribution of derived records is not authorised by default. Consequen
   is resolved in writing with the upstream authors.
 - User identifiers are hashed at ingest; raw identifiers are not written to disk.
 
-`data/processed/precision_sample.csv` contains raw review text for local hand-labelling and is
-permanently git-ignored, including after it is labelled. Only the resulting precision *rates* are
+`data/processed/precision_sample.csv` and its `.xlsx` twin contain raw review text for local
+hand-labelling and are permanently git-ignored, including after they are labelled. The workbook is
+the labelling surface — review text is full of commas, quotes and newlines, which a spreadsheet
+import mangles — and the CSV is the machine-readable copy. Only the resulting precision *rates* are
 publishable.
 
 ## Sources
