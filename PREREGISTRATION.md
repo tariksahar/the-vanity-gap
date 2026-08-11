@@ -135,6 +135,27 @@ belongs to neither arm.
 
 ## 5. Variables
 
+### 5.0 Labelling is BLIND, and the coding guide is fixed first
+
+Two rules, both binding, both settled before any label is entered.
+
+**Blind.** The labelling file carries `review_id_hash`, `review_title`, `review_text`, an empty
+`human_label` and an empty `buyer_gender_mismatch`. It carries **no assigned bucket, no gender, no
+category path and no body half.** Those live in a key file the labeller does not open, re-joined on
+`review_id_hash` after labels come back. An unblinded precision measurement is not a measurement: a
+labeller shown the assigned bucket is scoring agreement with a number already in front of them. Row
+order is shuffled, so order carries no information either.
+
+**Coding guide first.** What counts as a fit judgement is decided **before** blind labelling starts,
+and is written into Appendix A of this document. It is developed on the **discarded** sample of
+2026-08-08 (`data/processed/precision_sample_DISCARDED_2026-08-08_for_coding_rules.*`), which was
+never labelled and is outside the analysis window. Developing the rules on one sample and applying
+them to a different one is what keeps the rules from being tuned to the cases they will be scored
+on.
+
+The first sample was **discarded unlabelled** because it was drawn from the file head — the oldest
+reviews, which the §5.8 window excludes. Full reasoning: `docs/phase1-amazon-probe.md` §5.7.
+
 ### 5.1 `fit_score` — the outcome
 
 Buyer-relative realised fit, from review text, on `{-1, 0, +1}`:
@@ -341,3 +362,69 @@ amendment prompted by seeing a result must say so explicitly.
 | Date | Change | Reason |
 |---|---|---|
 | 2026-08-11 | v1.0 frozen | Initial registration |
+| 2026-08-11 | **A1 - §5.8 time window reopened as an empirical question.** IN PROGRESS | See below |
+| 2026-08-11 | A2 - labelling made blind; coding guide required as Appendix A before labelling (§5.0) | An unblinded measurement is not a measurement |
+
+### A1 - the analysis window is measured, not asserted
+
+**Status: amendment in progress. No estimate of `tau` had been run at the time of this amendment,
+and none has been run since.** That is stated explicitly because an amendment to an inclusion rule
+made after seeing an estimate would be worthless.
+
+**What changes.** `DESIGN.md` §5.8 set a trailing 12-18 month window. That figure was chosen against
+**survivorship bias** alone - products that sold badly get delisted, so old reviews attach to
+survivors.
+
+**Why it changes.** The sampling-frame check produced a second and independent reason: **the
+review-writing regime itself drifts.** Verified-purchase share 65% -> 95%, mean review length
+316 -> 142 characters, fit-label share 19.3% -> 13.8%. Pooling a decade pools heterogeneous
+*measurement* regimes, and if the regime mix differs across the four cells it contaminates `tau`
+directly rather than merely adding noise.
+
+**How the new boundary is chosen.** Empirically, by `time_window_probe.py`:
+
+1. Per calendar year, in the target categories: verified-purchase share, mean length, mean rating,
+   fit-label share. **The window starts where those series flatten**, not at a number picked in
+   advance.
+2. Each candidate window (18 months, 3 years, 5 years, 8 years, full history) is judged on the
+   **smallest cell, not total volume** - specifically the **men's lower-body** count, which is the
+   §1.5 placebo anchor and has already shrunk 26% under corrected sampling. A window that starves
+   that cell is unavailable however much total data it offers. `DESIGN.md` §5.5 makes cell
+   imbalance, not volume, the binding constraint on the MDE, and the upper:lower ratio was observed
+   moving 2.14 -> 2.58 -> 2.63 across file blocks, so the window changes cell *balance* and not only
+   cell size.
+3. The outcome is a **primary window plus a robustness ladder**: `tau` estimated at every window
+   length and reported together. Stability across the ladder is evidence that neither survivorship
+   nor regime drift is biting; **monotone movement across the ladder is itself a finding** and is
+   reported as one.
+
+**Block sampling still applies inside the window.** Restricting to recent reviews does not remove
+the need for `--spread`: three blocks detect only ordering coarser than the block size, so finer
+grouping - by product or by seller - could still survive inside the window.
+
+**This entry is completed with the measured numbers and the chosen window when the probe lands.**
+
+
+---
+
+## Appendix A — Coding guide for `human_label`
+
+**STATUS: NOT YET WRITTEN. Blind labelling must not begin until this appendix is filled.**
+
+To be written by the repository owner from the discarded sample
+(`data/processed/precision_sample_DISCARDED_2026-08-08_for_coding_rules.xlsx`), which was never
+labelled. It must settle at minimum:
+
+- What counts as a **fit judgement** at all, versus a comment on an object's dimensions ("the ring
+  is smaller than pictured"), on a garment's cut ("boxy"), or on one region only ("tight across the
+  bust, fine elsewhere").
+- How to treat a review describing **adjustment**: "runs small, I sized up, perfect". §5.3 makes this
+  a calibration signal rather than part of `fit_score`; the coding guide must say what the labeller
+  writes in that cell.
+- When to use **`none`** (no fit judgement present) versus **`unclear`** (a judgement is present but
+  the labeller cannot resolve it).
+- What triggers **`buyer_gender_mismatch`**.
+- Whether a **non-garment** item that reached the sample is `none` or is excluded.
+
+Once written, this appendix is frozen alongside the rest of the document, and any later change
+follows the §11 amendment protocol.

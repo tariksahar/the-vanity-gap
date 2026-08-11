@@ -427,6 +427,42 @@ property of the dictionary against text, and there is no strong reason it should
 age. That is an assumption, it is recorded here as one, and it can be checked later by re-drawing
 under `--spread` and comparing.
 
+### 5.7 The first precision sample was discarded unlabelled
+
+**2026-08-11.** The 300-row sample drawn on 2026-08-08 was **discarded without being labelled.** No
+label was ever entered in it, so nothing is lost and nothing is contaminated.
+
+**Why.** It was drawn from a prefix join — the head of the file, which §5.6 established is the
+**oldest** reviews. `DESIGN.md` §5.8 restricts the primary analysis to a recent window, so those
+reviews are exactly the ones the analysis will never see. Measuring the dictionary's precision
+against text excluded from the analysis is a mismatch with no upside.
+
+There is also a **mechanism**, not merely a worry. Head-block reviews average 316 characters against
+142 at the tail. Longer text gives every pattern more room to fire on something incidental, which is
+precisely the error mode the first hand-scoring found — a purse, two watch bands, a pair of glasses,
+all matched on "too big". Precision measured on long old reviews would therefore be biased
+**downward** relative to the analysis window, and a measurement biased in a known direction against
+an 80% threshold is not usable.
+
+I had argued that precision is a property of the dictionary against text and so likely
+age-invariant. That argument is not wrong, but it loses to an inclusion rule already frozen: the
+window restriction decides which text matters, and this sample is outside it.
+
+**It is kept on disk, not deleted** —
+`data/processed/precision_sample_DISCARDED_2026-08-08_for_coding_rules.{csv,xlsx}`. Its purpose is
+now **coding-rule development**: the repository owner reads it to decide what counts as a fit
+judgement, and produces a coding guide. That guide becomes an appendix to `PREREGISTRATION.md` and
+**must be fixed before blind labelling starts**. Using a discarded sample to develop the rules and a
+fresh sample to apply them is the correct order; it is what keeps the rules from being tuned to the
+cases they will be scored on.
+
+**The replacement is blind.** The labelling file carries `review_id_hash`, `review_title`,
+`review_text`, an empty `human_label` and an empty `buyer_gender_mismatch` — and nothing else. No
+assigned bucket, no gender, no category path, no body half. An unblinded precision measurement is
+not a measurement: a labeller who can see the assigned bucket is scoring their agreement with a
+number already in front of them. The withheld columns live in a key file and are re-joined on
+`review_id_hash` after labels come back.
+
 ### Standing
 
 All rates in this document are marked **superseded**; the corrected table above replaces the ones

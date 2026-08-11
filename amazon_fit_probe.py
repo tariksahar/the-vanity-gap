@@ -37,6 +37,7 @@ from __future__ import annotations
 import argparse
 import collections
 import csv
+import datetime
 import gzip
 import hashlib
 import io
@@ -790,6 +791,22 @@ def flatten_categories(cats) -> tuple[list[str], list[str]]:
     return segments, [s for s in segments if s not in ROOT_SEGMENTS]
 
 
+def _review_year(record: dict) -> int | None:
+    raw = record.get("timestamp")
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if value > 1e11:
+        value /= 1000.0
+    try:
+        return datetime.datetime.utcfromtimestamp(value).year
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
 def review_id_hash(record: dict) -> str:
     """Stable pseudonymous id. The raw user_id never leaves this function.
 
@@ -829,7 +846,8 @@ def build_style_index(category: str, limit: int) -> tuple[dict, dict]:
 
 
 def draw_precision_sample(category: str, review_limit: int, index: dict,
-                          per_stratum: int, rng: random.Random) -> tuple[list, dict]:
+                          per_stratum: int, rng: random.Random,
+                          window_from: int = 0) -> tuple[list, dict]:
     """Reservoir-sample `per_stratum` reviews for each (bucket, gender) cell.
 
     Reservoir sampling gives every eligible review an equal probability of
@@ -843,6 +861,13 @@ def draw_precision_sample(category: str, review_limit: int, index: dict,
 
     for record in iter_records(f"raw_review_{category}", category, review_limit):
         stats["scanned"] += 1
+        if window_from:
+            # DESIGN.md 5.8: measure the dictionary on text the analysis will
+            # actually see. Reviews outside the analysis window are not sampled.
+            year = _review_year(record)
+            if year is None or year < window_from:
+                stats["outside_window"] += 1
+                continue
         parent = record.get("parent_asin")
         entry = index.get(parent) if parent else None
         if entry is None:
@@ -884,17 +909,46 @@ def draw_precision_sample(category: str, review_limit: int, index: dict,
     return rows, stats
 
 
+BLIND_COLUMNS = ["review_id_hash", "review_title", "review_text",
+                 "human_label", "buyer_gender_mismatch"]
+
+
 def emit_precision_sample(path: pathlib.Path, rows: list, rng: random.Random) -> None:
-    rng.shuffle(rows)  # so the labeller cannot infer the bucket from row order
+    """Write the key file and the BLIND labelling file.
+
+    An unblinded precision measurement is not a measurement: a labeller who can
+    see `assigned_bucket` is scoring their agreement with a number already in
+    front of them. The blind file therefore carries only the review id and the
+    text. Gender, body half, category path and the assigned bucket all stay in
+    the key file, which the labeller does not open, and are re-joined on
+    `review_id_hash` after the labels come back.
+    """
+    rng.shuffle(rows)  # so row order carries no information about the bucket
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as handle:
+
+    key_path = path.with_name(path.stem + "_key.csv")
+    with key_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=PRECISION_COLUMNS)
         writer.writeheader()
         writer.writerows(rows)
-    _emit_xlsx(path.with_suffix(".xlsx"), rows)
+    print(f"  [key  ] wrote {key_path}  (NOT for labelling -- contains assigned_bucket)")
+
+    blind = [{"review_id_hash": row["review_id_hash"],
+              "review_title": row["review_title"],
+              "review_text": row["review_text"],
+              "human_label": "",
+              "buyer_gender_mismatch": ""} for row in rows]
+
+    blind_path = path.with_name(path.stem + "_blind.csv")
+    with blind_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=BLIND_COLUMNS)
+        writer.writeheader()
+        writer.writerows(blind)
+    _emit_xlsx(blind_path.with_suffix(".xlsx"), blind, BLIND_COLUMNS)
+    print(f"  [blind] wrote {blind_path} and .xlsx  <- THIS is the labelling file")
 
 
-def _emit_xlsx(path: pathlib.Path, rows: list) -> None:
+def _emit_xlsx(path: pathlib.Path, rows: list, columns: list | None = None) -> None:
     """Same rows, same columns, as a workbook.
 
     Review text contains commas, quotes and newlines, which is exactly what a
@@ -910,10 +964,11 @@ def _emit_xlsx(path: pathlib.Path, rows: list) -> None:
         print("  [xlsx] openpyxl not installed; wrote csv only  (pip install openpyxl)")
         return
 
+    columns = columns or PRECISION_COLUMNS
     book = Workbook()
     sheet = book.active
     sheet.title = "precision_sample"
-    sheet.append(PRECISION_COLUMNS)
+    sheet.append(columns)
 
     header_fill = PatternFill("solid", fgColor="DDDDDD")
     for cell in sheet[1]:
@@ -922,13 +977,14 @@ def _emit_xlsx(path: pathlib.Path, rows: list) -> None:
     sheet.freeze_panes = "A2"
 
     for row in rows:
-        sheet.append([row[column] for column in PRECISION_COLUMNS])
+        sheet.append([row[column] for column in columns])
 
     widths = {"review_id_hash": 18, "asin": 12, "parent_asin": 13,
               "category_path": 46, "gender": 8, "body_half": 10,
               "review_title": 40, "review_text": 90,
-              "assigned_bucket": 15, "human_label": 15}
-    for index, column in enumerate(PRECISION_COLUMNS, start=1):
+              "assigned_bucket": 15, "human_label": 16,
+              "buyer_gender_mismatch": 22}
+    for index, column in enumerate(columns, start=1):
         letter = sheet.cell(row=1, column=index).column_letter
         sheet.column_dimensions[letter].width = widths.get(column, 14)
         if column in ("review_title", "review_text", "category_path"):
@@ -936,7 +992,7 @@ def _emit_xlsx(path: pathlib.Path, rows: list) -> None:
                 cell.alignment = Alignment(wrap_text=True, vertical="top")
 
     # Constrain the label column so the returned file is machine-readable.
-    label_index = PRECISION_COLUMNS.index("human_label") + 1
+    label_index = columns.index("human_label") + 1
     label_letter = sheet.cell(row=1, column=label_index).column_letter
     validation = DataValidation(
         type="list",
@@ -950,6 +1006,18 @@ def _emit_xlsx(path: pathlib.Path, rows: list) -> None:
     validation.promptTitle = "human_label"
     sheet.add_data_validation(validation)
     validation.add(f"{label_letter}2:{label_letter}{len(rows) + 1}")
+
+    if "buyer_gender_mismatch" in columns:
+        flag_index = columns.index("buyer_gender_mismatch") + 1
+        flag_letter = sheet.cell(row=1, column=flag_index).column_letter
+        flag_validation = DataValidation(
+            type="list", formula1='"yes,no,unclear"',
+            allow_blank=True, showDropDown=False)
+        flag_validation.prompt = ("yes if the text shows the reviewer is not the wearer, "
+                                  "or is not the gender the garment is sold as.")
+        flag_validation.promptTitle = "buyer_gender_mismatch"
+        sheet.add_data_validation(flag_validation)
+        flag_validation.add(f"{flag_letter}2:{flag_letter}{len(rows) + 1}")
 
     book.save(path)
     print(f"  [xlsx] wrote {path}")
@@ -1103,6 +1171,9 @@ def main() -> int:
     parser.add_argument("--per-stratum", type=int, default=50,
                         help="reviews drawn per bucket x gender cell (default 50 -> 300 rows)")
     parser.add_argument("--sample-out", default="data/processed/precision_sample.csv")
+    parser.add_argument("--window-from", type=int, default=0,
+                        help="only sample reviews from this calendar year onward "
+                             "(DESIGN.md 5.8 analysis window)")
     args = parser.parse_args()
 
     rng = random.Random(args.seed)
@@ -1139,7 +1210,8 @@ def run_precision_sample(args, rng: random.Random) -> int:
           f"{pct(meta_stats['in_scope'], meta_stats['seen'])}")
 
     rows, stats = draw_precision_sample(
-        args.category, args.sample_reviews, index, args.per_stratum, rng)
+        args.category, args.sample_reviews, index, args.per_stratum, rng,
+        window_from=args.window_from)
 
     print(f"\nreviews scanned        {stats['scanned']:>9,}")
     print(f"joined to an in-scope style {stats['joined']:>4,}  "

@@ -671,9 +671,18 @@ and should vanish in classic shirts. All testable.
 ### 5.8 Survivorship bias in historical windows
 
 Reviews reach back years but attach to products still listed today. Products that sold badly were
-delisted — precisely the products most informative about which sizes fail to sell. Restrict the
-primary analysis to a recent window (default: trailing 12–18 months) and use full history only for
-the time-trend test, stating the bias there.
+delisted — precisely the products most informative about which sizes fail to sell.
+
+**Amended 2026-08-11 — the window is now measured, not asserted. See `PREREGISTRATION.md` §11 A1.**
+The 12–18 month default was set against survivorship bias alone. A second and independent reason has
+since been measured: the **review-writing regime drifts** (verified-purchase 65% → 95%, mean length
+316 → 142 characters, fit-label share 19.3% → 13.8%). Pooling a decade pools heterogeneous
+measurement regimes, and if the mix differs across cells it contaminates `tau` directly.
+
+The boundary is therefore chosen empirically by `time_window_probe.py`: where the per-year series
+flatten, judged on the **men's lower-body cell** rather than total volume (§5.5), and reported as a
+primary window plus a **robustness ladder** of `tau` at every window length. Monotone movement
+across the ladder is itself a finding. Block sampling (§5.13) still applies *within* the window.
 
 ### 5.9 Marketplace heterogeneity (Amazon-specific)
 
