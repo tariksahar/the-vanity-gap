@@ -342,8 +342,39 @@ def report_sellers(res: dict) -> None:
     hhi = sum(s * s for s in shares)
     print(f"\n  HHI {hhi:.4f}   (1/n = {1 / len(per_store):.4f} if perfectly spread)")
     print(f"  effective number of stores  {1 / hhi:.1f}" if hhi else "")
-    print("\n  Reading: concentration near the spread benchmark => behavioural.")
-    print("  A handful of stores carrying most of it => the seller's ruler, not the buyer's desire.")
+    print("\n  CAVEAT: concentration describes how OBSERVATIONS spread across stores.")
+    print("  It does NOT answer whether deviation is a property of the store or of")
+    print("  the person. The two tests below do.")
+
+    observations = res.get("observations") or []
+
+    rule("VARIANCE DECOMPOSITION -- store property or person property?")
+    decomposition = variance_decomposition(observations)
+    if decomposition:
+        print(f"observations {decomposition['n']:,}   stores {decomposition['stores']:,}"
+              f"   mean obs/store {decomposition['mean_obs_per_store']:.1f}")
+        print(f"\n  eta^2 (share of variance BETWEEN stores)  {decomposition['eta_squared']:.3f}")
+        if decomposition["icc_store"] is not None:
+            print(f"  ICC  (unbiased, one-way random effects)  {decomposition['icc_store']:.3f}")
+        print("\n  eta^2 is upward-biased with many small groups -- read the ICC.")
+        print("  High => stores differ systematically => calibration.")
+        print("  Low  => varies within stores as much as across => behaviour.")
+
+    rule("WITHIN-STORE GENDER TEST -- calibration differenced out")
+    within = within_store_gender(observations)
+    print(f"stores carrying BOTH genders  {within['stores_with_both']:,}"
+          f" of {within['stores_total']:,}")
+    print(f"observations covered          {within['observations_covered']:,}"
+          f"  (men {within['men_obs']:,}, women {within['women_obs']:,})")
+    if within["stores_with_both"] < 15 or within["men_obs"] < 30:
+        print("\n  OVERLAP TOO THIN. The within-store test does not exist on this")
+        print("  sample. Reported as unavailable rather than substituted with a")
+        print("  weaker measure.")
+    else:
+        print(f"\n  within-store gap (men - women), weighted    {within['weighted_gap']:+.3f}")
+        print(f"  within-store gap (men - women), unweighted  {within['unweighted_gap']:+.3f}")
+        print("\n  A store's calibration is constant within it, so a residual gap")
+        print("  here CANNOT be calibration.")
 
     print("\ntop 15 stores by positive-deviation count:")
     print(f"{'store':<34}{'n':>7}{'mean dev':>10}{'pos':>7}{'men':>6}{'women':>7}")

@@ -487,6 +487,78 @@ amendment prompted by seeing a result must say so explicitly.
 | 2026-08-11 | **A1 - §5.8 time window reopened and re-set to 5 years (2019 onward), with a robustness ladder.** COMPLETE | Regime drift measured; the 12-18 month default yields 12 anchor-cell observations |
 | 2026-08-11 | A2 - labelling made blind; coding guide required as Appendix A before labelling (§5.0) | An unblinded measurement is not a measurement |
 | 2026-08-11 | A3 - `product_title` un-blinded in the labelling file (§5.0) | The non-garment coding rule cannot be applied to review text alone; a product title carries no signal about the assigned bucket |
+| 2026-08-11 | **A4 - fixed effects moved off style level; §7.1a primary/secondary corrected.** COMPLETE | The style-FE specification was unidentified. See below. |
+
+### A4 - the fixed-effects level, and the §7.1a correction
+
+**No estimate of `tau` had been run at the time of this amendment, and none has been run since.**
+
+**What was wrong.** §7.1 and `DESIGN.md` §1.4 specified style-level fixed effects. That
+specification **cannot estimate its own estimand**: gender and body half do not vary within a style,
+so `male`, `upper` and `male x upper` are perfectly collinear with the style dummies and none of the
+three coefficients is identified. Confirmed on the drawn sample -- 170 styles, **zero** spanning more
+than one gender x body-half cell. Full detail: `docs/phase1d-specification-error.md`.
+
+**Seller FE was proposed and measured, and it does not work.** Of 2,014 sellers carrying 16,027
+labelled observations, 67.50% span a single cell and are absorbed entirely. Only **30 sellers**
+(15.74% of observations) span three or more cells, which is what identification of the interaction
+requires. The anchor cell retains 37.3%. Resting the estimand on thirty sellers is not a primary
+specification, and it is reported as unviable rather than adopted because it was the proposal.
+
+**Adopted instead:**
+
+| element | before | after |
+|---|---|---|
+| fixed effects | style (`parent_asin`) | **garment category** |
+| seller | absent | **covariate** |
+| standard errors | clustered on style | **unchanged** -- clustered on style |
+| calibration covariate | style-level | **unchanged** |
+
+Within a garment category `upper` is constant but `male` varies, so `beta3` is identified as the
+difference in the male coefficient between upper-body and lower-body categories. This uses every
+observation instead of 15.74% of them.
+
+**Cost, stated rather than glossed:** seller FE would have absorbed the §9.1 calibration confound
+directly. A seller covariate does not. **§9.1 therefore stays OPEN** and is not closed as a
+by-product.
+
+**Retained as robustness:** seller FE on the 30-seller subsample. Low-powered, but a within-seller
+replication differences calibration out entirely, so it is a strong test despite its size. Published
+whatever it shows.
+
+**The §7.1a correction.** That section reported the MDE of the WIDE upper/lower sample against a
+claim about the PRIMARY gradient specification. Measured cells at 3,000,000 reviews:
+
+| sample | men/up | men/low | wom/up | wom/low | smallest |
+|---|---|---|---|---|---|
+| wide (secondary) | 2,385 | 2,005 | 8,465 | 3,174 | 2,005 |
+| gradient (primary) | 1,433 | 1,644 | 5,895 | 1,548 | 1,433 |
+
+The gradient is thinner but modestly -- 66% of the wide sample. **The primary specification is NOT
+re-ranked**, and no amendment to which test is confirmatory is proposed or needed.
+
+### A5 - clustering parameters measured; `parent_asin` is not reliably a style
+
+`m_bar` and CV were assumed from Phase 0's Mavi figures. Measured on Amazon:
+
+| | m_bar | CV | DEFF (ICC 0.05) | MDE (wide) |
+|---|---|---|---|---|
+| Phase 0 assumption | 20.00 | 1.00 | 2.95 | 0.177 |
+| **measured, all styles** | **4.571** | **11.31** | **30.40** | **0.568** |
+| measured, excluding heaviest listing | 3.740 | 4.26 | 4.54 | 0.219 |
+
+`m_bar` is a quarter of the assumed value, which helps. **CV is eleven times it, which hurts far
+more**, since it enters as `CV^2 + 1`.
+
+The cause: **2,916 labelled observations -- 18.2% of the sample -- sit in a single `parent_asin`**, a
+print-on-demand novelty listing whose one parent covers a whole catalogue of designs. Median across
+styles is 1. `DESIGN.md` §1.6 treats `parent_asin` as a style; for these sellers it is a product
+line.
+
+**OPEN DECISION, owner's, to be fixed here before any estimation.** Keep such listings (MDE 0.568),
+exclude listings above a stated observation threshold as not being styles (MDE ~0.22), or model them
+separately. This moves the headline power figure by a factor of 2.6, so the rule must be written
+down in advance rather than chosen after seeing which produces a better answer.
 
 ### A1 - the analysis window is measured, not asserted
 

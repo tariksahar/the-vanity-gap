@@ -18,6 +18,7 @@ being loaded instead, the repository is in the wrong place — fix that before d
 | **Phase 1 (Amazon probe)** | Complete — `docs/phase1-amazon-probe.md`. Corpus is `Clothing_Shoes_and_Jewelry`; it carries the primary estimand but not purchased size. Precision measurement **pending**. |
 | **Phase 1b (size deviation)** | Complete — `docs/phase1b-size-deviation-probe.md`. Real but not primary; men's-lower cell ~330 corpus-wide. |
 | **Phase 2a (dictionary validation)** | Complete — `docs/phase2-dictionary-validation.md`. Two pattern families carry nearly all the error; **no pattern removed in response**, per the pre-commitment. |
+| **Specification** | **Corrected 2026-08-11.** Style-level FE was unidentified; fixed effects move to garment category, seller becomes a covariate. `docs/phase1d-specification-error.md`. |
 | **Analysis window** | **2019 onward (5 years)**, set empirically 2026-08-11 — `docs/phase1c-time-window.md`. The old 12–18 month default gave 12 observations in the men's-lower anchor cell. |
 | **Sampling validity** | **Files are ordered (2026-08-11).** Prefix-based rates superseded; re-measuring under `--spread`. §5.13. |
 | **Current task** | Phase 2b — the women's-arm estimator (§4.2) → `docs/phase2-women-arm.md`. In parallel: hand-label `data/processed/precision_sample.csv`. |
@@ -184,8 +185,23 @@ tau = ( E[fit_score | men,   upper] - E[fit_score | men,   lower] )
     - ( E[fit_score | women, upper] - E[fit_score | women, lower] )
 ```
 
-Estimate as a single regression with an interaction term and **style-level fixed effects**, not as
-four separate means. Cluster standard errors at the style level (§1.6).
+**Estimate with fixed effects at GARMENT CATEGORY level, not style level. Corrected 2026-08-11 --
+see `PREREGISTRATION.md` §11 A4 and `docs/phase1d-specification-error.md`.**
+
+An earlier version of this section specified **style-level** fixed effects. That specification is
+**unidentified**: gender and body half do not vary within a style, so `male`, `upper` and their
+interaction are perfectly collinear with the style dummies. Measured: 170 styles in the drawn
+sample, **zero** spanning more than one gender x body-half cell. Seller-level FE was measured as the
+replacement and rejected -- only 30 sellers (15.74% of observations) span enough cells to identify
+the interaction.
+
+Within a garment category `upper` is constant but `male` varies, so the interaction is identified as
+the difference in the male coefficient between upper-body and lower-body categories, using every
+observation.
+
+Cluster standard errors at the **style** level (§1.6) -- unchanged, and a separate matter from the
+fixed-effects level. Seller enters as a **covariate**; it therefore does not absorb the §5.9
+calibration confound, which stays open.
 
 **Selection must be modelled, not assumed away** — see §5.2.
 
@@ -885,6 +901,7 @@ the-vanity-gap/
     phase2-divergence-precommitment.md   # written before Phase 2 was run
     phase1b-size-deviation-probe.md
     phase1c-time-window.md
+    phase1d-specification-error.md
     phase2-dictionary-validation.md
   src/
     adapters/          # one module per source, shared interface
