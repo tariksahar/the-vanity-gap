@@ -283,7 +283,55 @@ on the **H3 three-category gradient sample**, with style fixed effects `alpha_s`
 clustered at the style level (`parent_asin`).
 
 **`beta3` is the estimand `tau`. It is the single primary test of this pre-registration.**
-Prediction: `beta3 > 0`. Everything else in this document is secondary or exploratory and will be
+Prediction: `beta3 > 0`.
+
+### 7.1a OPERATIVE MDE — recorded as a number, 2026-08-11
+
+Computed by `src/analysis/run_window_power.py` using `src/analysis/power.py` unchanged, so it is
+directly comparable with the Phase 0 table.
+
+| window | anchor cell | no clustering | ICC 0.02 / CV 1 | **ICC 0.05 / CV 1** | ICC 0.05 / CV 2 |
+|---|---|---|---|---|---|
+| 18 months | 12 | 1.099 | 1.466 | **1.888** | 2.681 |
+| 3 years | 151 | 0.337 | 0.450 | **0.579** | 0.823 |
+| **5 years (primary)** | **307** | 0.244 | 0.325 | **0.418** | 0.594 |
+| 8 years | 394 | 0.218 | 0.291 | **0.375** | 0.532 |
+| full history | 431 | 0.212 | 0.283 | **0.364** | 0.518 |
+
+**OPERATIVE FIGURE: MDE = 0.418 SD** at the primary window under Phase 0's realistic central
+scenario (ICC 0.05, CV 1.0, m_bar 20).
+
+**The study as currently scoped is powered for a LARGE effect only.** 0.418 SD is outside the
+0.20–0.30 SD band Phase 0 called realistic, and well outside §5.16's 0.15 SD. Even the no-clustering
+corner is 0.244 SD. **The entire result rests on roughly 300 men's lower-body observations**, and
+that is stated here rather than discovered at the estimation stage.
+
+**Where the variance lives**, 5-year window:
+
+| cell | share of Var(tau) |
+|---|---|
+| men / lower | **43.1%** |
+| men / upper | 32.7% |
+| women / lower | 16.6% |
+| women / upper | 7.7% |
+
+The two men's cells carry **76%** of the variance between them. That is §5.5 in arithmetic.
+
+**Widening the window cannot fix this.** Full history gives only ×1.40 on the anchor cell — MDE
+0.364 rather than 0.418 — while readmitting the regime drift the window exists to exclude. Reaching
+0.30 SD needs ×1.95 on every cell; 0.25 SD needs ×2.80.
+
+**Dictionary recall is now the principal lever on the binding constraint.** The anchor cell scales
+directly with recall, and measured recall is 6.7–51.1% per bucket (§1.2), so the headroom is large —
+larger than any available widening of the window. A recall improvement is worth more to this study
+than more years of data, and it is the cheapest route to a defensible MDE.
+
+**Two caveats, both stated so the figure is not read as harder than it is.** The counts come from a
+600,000-review sample against a 250,000-item index, not from a full-index pass over 66M reviews, so
+they are the pessimistic end and the ratios between windows are the durable part. And `m_bar = 20`
+is the Phase 0 Mavi figure; Amazon reviews-per-style is unmeasured and enters the design effect
+linearly, making it the weakest assumption in the table. **Measuring it is a prerequisite to
+treating 0.418 as final.** Everything else in this document is secondary or exploratory and will be
 labelled as such.
 
 ### 7.2 Secondary, pre-specified
@@ -341,14 +389,30 @@ This is distinct from the generic seller heterogeneity already in `DESIGN.md` §
 share, HHI, effective number of stores). Concentration in a handful of stores ⇒ calibration.
 Spread thinly across many ⇒ behavioural.
 
-**First attempt, 2026-08-11: INCONCLUSIVE — underpowered.** 400,000 block-sampled reviews joined to
-200,000 metadata records yielded only **21** positive-deviation observations across 31 stores. No
-concentration statistic computed on 21 points can distinguish calibration from behaviour, and none
-is quoted here. The binding constraint is that the deviation language is rare (0.20%) and the
-metadata join costs most of what survives. Reaching ~1,000 positive-deviation observations needs
-roughly 20M streamed reviews. **This threat is therefore OPEN, not cleared**, and no result relying
-on the §5.4 deviation measure may be published until it is answered. One observation worth carrying:
-20 of the 21 were women's garments, consistent with the 9 : 1 asymmetry in §1.3.
+**ANSWERED 2026-08-11 at 20M reviews — PARTIALLY CONFIRMED.** A first attempt at 400,000 reviews
+yielded 21 observations and was reported as inconclusive with no statistic quoted. Re-run at
+19,999,992 reviews it yielded **1,253 positive-deviation observations across 649 stores**.
+
+Result: **HHI 0.0231** against a spread benchmark of 0.0015; **43.2 effective stores** out of 649;
+the top store alone carries **12.85%** of positive deviation; the top 50 carry 53%. Store-level mean
+deviation ranges +0.25 to +1.45 among the top 15 — a 1.2-ladder-step spread, which is real
+heterogeneity in the seller's ruler.
+
+The pre-registered dichotomy — handful ⇒ calibration, spread ⇒ behavioural — **does not resolve
+cleanly, and is reported as unresolved rather than forced to one side.** 43 effective stores is not
+a handful; 15× the even-spread benchmark is not thinly spread.
+
+**Consequences, binding:**
+
+1. **The §5.4 deviation measure requires store fixed effects** in any specification, and any result
+   from it states that identification leans on a concentrated set of sellers.
+2. **The primary `fit_score` measure is protected**, for a structural reason: seller calibration is
+   constant within a style, `parent_asin` is nested within store, so the **style fixed effects of
+   §7.1 absorb it entirely.** This asymmetry is now an independent argument for `fit_score` as
+   primary, additional to the cell-count argument.
+3. Refutation condition §8.4 — "`beta3` driven by a small number of sellers" — is **not** triggered
+   for the primary specification by this result, because §7.1 already absorbs the mechanism. It
+   remains live for any deviation-based specification.
 
 ### 9.2 Buyer gender ≠ garment gender
 
@@ -364,6 +428,33 @@ upper and lower within a gender** survives. Unmeasurable on Amazon, testable on 
 Confusion is overwhelmingly with `true_to_size` rather than sign-reversal (131 and 13 sign errors in
 46,223 rows), which attenuates `tau` toward zero. A biased-toward-null instrument that still finds an
 effect is more credible, not less — but the noise is reported, not used as an excuse.
+
+### 9.6 `fit_score` under-captures INTENTIONAL deviation — the Rule 4 limitation
+
+From `docs/coding-guide.md` §4, and the most consequential limitation of the outcome measure.
+
+The coding rule is to record the garment's physical relation to the body, not the buyer's
+satisfaction: *"Perfect fit. Loose, but still flattering"* is `ran_large`. That rule is right, and
+coding satisfaction instead would make the measure blind to the phenomenon under test.
+
+**But it does not fully rescue the measure.** A buyer who sized up deliberately and is pleased may
+not describe the looseness at all — they write that the item is good and say nothing about fit.
+Those reviews yield no signal in either direction and simply fall out of the sample.
+
+**So `fit_score` captures unintended misfit more completely than intended deviation — and intended
+deviation is exactly what H1 and H2 predict.** The measure is therefore biased against the
+hypothesis. Two consequences, both binding:
+
+1. An effect found under this measure is **stronger** than its face value, because the instrument is
+   insensitive to the mechanism it is testing. This is not a licence to inflate the estimate; it is
+   a statement about the direction of the bias, and the estimate is reported as measured.
+2. **A null result is correspondingly weaker as evidence against the hypothesis.** §8.1 —
+   `beta3` ≤ 0 — must be read with this in mind, and the write-up says so rather than treating a
+   null as clean.
+
+This is the principal reason the §5.4 self-reported deviation measure is retained despite its own
+problems: it captures intentional deviation **directly**. The two measures have opposite weaknesses,
+which is what makes them worth carrying together rather than one being redundant.
 
 ### 9.5 Oversized fashion
 
@@ -473,22 +564,44 @@ and is reported as one, not resolved by choosing a rung.
 
 ## Appendix A — Coding guide for `human_label`
 
-**STATUS: NOT YET WRITTEN. Blind labelling must not begin until this appendix is filled.**
+**STATUS: COMPLETE. `docs/coding-guide.md` v1.0, frozen 2026-08-11, incorporated here by
+reference and forming part of this pre-registration.**
 
-To be written by the repository owner from the discarded sample
-(`data/processed/precision_sample_DISCARDED_2026-08-08_for_coding_rules.xlsx`), which was never
-labelled. It must settle at minimum:
+Written by the repository owner against the discarded, never-labelled sample of 2026-08-08
+(`data/processed/precision_sample_DISCARDED_2026-08-08_for_coding_rules.*`), which is outside the
+analysis window and part of no measurement. Rules developed on one sample and applied to a
+different one cannot be tuned to the cases they will be scored on.
 
-- What counts as a **fit judgement** at all, versus a comment on an object's dimensions ("the ring
-  is smaller than pictured"), on a garment's cut ("boxy"), or on one region only ("tight across the
-  bust, fine elsewhere").
-- How to treat a review describing **adjustment**: "runs small, I sized up, perfect". §5.3 makes this
-  a calibration signal rather than part of `fit_score`; the coding guide must say what the labeller
-  writes in that cell.
-- When to use **`none`** (no fit judgement present) versus **`unclear`** (a judgement is present but
-  the labeller cannot resolve it).
-- What triggers **`buyer_gender_mismatch`**.
-- Whether a **non-garment** item that reached the sample is `none` or is excluded.
+**The question the labeller answers** (guide §0): *relative to the buyer's own body, did the garment
+they actually received run small, fit, or run large?* Not whether the product is correctly
+calibrated against its label; not whether the buyer was happy.
 
-Once written, this appendix is frozen alongside the rest of the document, and any later change
-follows the §11 amendment protocol.
+**Rules, in brief** — the guide is authoritative and this is a map, not a substitute:
+
+| § | Rule |
+|---|---|
+| 1 | Adjustment reports: code the fit of the size **actually received**. Advice to other shoppers describes the product, not the wearer, and is ignored. |
+| 2 | **Wearer, not buyer.** Buying on someone else's behalf is not a mismatch; a fit judgement given for a body whose gender differs from the product's is. |
+| 3 | A single region suffices if the direction is clear. Conflicting regions, or a judgement conditioned on a hypothetical body, are `unclear`. |
+| 4 | **Physical fit, not satisfaction.** "Perfect fit. Loose, but still flattering" is `ran_large`. |
+| 5 | Code fit **as first worn**; shrinkage follows the sizing decision rather than constituting it. |
+| 6 | Code only the product the review is attached to. |
+| 7 | Non-garment items are `none`, however fit-like the language. |
+| 8 | `calibration_stated` when the review attributes sizing to the brand or a regional convention. |
+
+**Three structural consequences, all applied:**
+
+1. `buyer_gender_mismatch` is renamed **`wearer_gender_mismatch`**. This is a change of concept, not
+   of label: what matters is whose body the judgement describes, not who paid.
+2. **`calibration_stated`** is added, giving a manual upper bound on the §9.1 confound that does not
+   wait on the corpus-scale seller analysis.
+3. The **Rule 4 limitation** is recorded in §9.6 below and in `DESIGN.md` §5.1.
+
+**Convergence worth recording.** Guide §1 and §5.3 of this document were written independently — the
+guide by the repository owner from sample text, §5.3 from the ModCloth per-pattern diagnosis — and
+reached the same rule: adjustment-advice language describes the product's calibration and is
+excluded from `fit_score`. That is weak evidence the rule follows from the design rather than from
+taste, and it is recorded as weak evidence, not as confirmation.
+
+Any change to the guide follows the §11 amendment protocol and requires re-labelling the affected
+rows: rules changed mid-pass produce an inconsistent measurement.

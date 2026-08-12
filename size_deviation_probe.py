@@ -206,6 +206,7 @@ def probe_sellers(category: str, review_limit: int, item_limit: int) -> dict:
 
     per_store = collections.defaultdict(lambda: {"n": 0, "sum": 0, "pos": 0})
     per_store_gender = collections.defaultdict(lambda: collections.Counter())
+    observations: list[tuple[str, str, int]] = []   # (store, gender, deviation)
     scanned = joined = 0
 
     for record in iter_records(f"raw_review_{category}", category, review_limit):
@@ -225,6 +226,7 @@ def probe_sellers(category: str, review_limit: int, item_limit: int) -> dict:
             continue
         joined += 1
         gender, half, store = entry
+        observations.append((store, gender, found["deviation"]))
         bucket = per_store[store]
         bucket["n"] += 1
         bucket["sum"] += found["deviation"]
@@ -233,7 +235,88 @@ def probe_sellers(category: str, review_limit: int, item_limit: int) -> dict:
             per_store_gender[store][gender] += 1
 
     return {"meta_stats": meta_stats, "scanned": scanned, "joined": joined,
-            "per_store": dict(per_store), "per_store_gender": dict(per_store_gender)}
+            "per_store": dict(per_store), "per_store_gender": dict(per_store_gender),
+            "observations": observations}
+
+
+def variance_decomposition(observations: list[tuple[str, str, int]]) -> dict:
+    """How much of the variance in deviation is BETWEEN stores vs WITHIN them?
+
+    This is the question concentration statistics do not answer. HHI describes
+    how observations spread across stores; it says nothing about whether the
+    deviation is a property of the store (calibration) or of the person
+    (behaviour). A one-way ANOVA on store does.
+
+        eta^2 = SS_between / SS_total
+
+    High eta^2 => stores differ systematically => the seller's ruler.
+    Low eta^2  => deviation varies within stores as much as across them =>
+                  a property of buyers, not of sellers.
+    """
+    if not observations:
+        return {}
+    values = [d for _s, _g, d in observations]
+    grand = sum(values) / len(values)
+    ss_total = sum((v - grand) ** 2 for v in values)
+
+    by_store = collections.defaultdict(list)
+    for store, _gender, deviation in observations:
+        by_store[store].append(deviation)
+
+    ss_between = sum(len(v) * (sum(v) / len(v) - grand) ** 2 for v in by_store.values())
+    ss_within = ss_total - ss_between
+    k, n = len(by_store), len(values)
+
+    # Unbiased ICC via one-way random effects, since eta^2 is upward-biased when
+    # groups are small and numerous -- which is exactly this data.
+    icc = None
+    if k > 1 and n > k:
+        ms_between = ss_between / (k - 1)
+        ms_within = ss_within / (n - k)
+        sizes = [len(v) for v in by_store.values()]
+        m0 = (n - sum(x * x for x in sizes) / n) / (k - 1)
+        if m0 > 0 and ms_between + (m0 - 1) * ms_within != 0:
+            icc = (ms_between - ms_within) / (ms_between + (m0 - 1) * ms_within)
+
+    return {"eta_squared": ss_between / ss_total if ss_total else 0.0,
+            "icc_store": icc, "n": n, "stores": k,
+            "mean_obs_per_store": n / k if k else 0.0}
+
+
+def within_store_gender(observations: list[tuple[str, str, int]]) -> dict:
+    """The clean test: men vs women INSIDE the same store.
+
+    A store's calibration is constant within that store, so comparing genders
+    inside it differences calibration out entirely. A residual gender gap here
+    cannot be the seller's ruler.
+
+    Reports the overlap first, because if too few stores carry both genders the
+    test does not exist and saying so is the honest answer.
+    """
+    by_store = collections.defaultdict(lambda: {"men": [], "women": []})
+    for store, gender, deviation in observations:
+        if gender in ("men", "women"):
+            by_store[store][gender].append(deviation)
+
+    both = {s: v for s, v in by_store.items() if v["men"] and v["women"]}
+    covered = sum(len(v["men"]) + len(v["women"]) for v in both.values())
+    men_obs = sum(len(v["men"]) for v in both.values())
+    women_obs = sum(len(v["women"]) for v in both.values())
+
+    gaps, weights = [], []
+    for value in both.values():
+        men_mean = sum(value["men"]) / len(value["men"])
+        women_mean = sum(value["women"]) / len(value["women"])
+        weight = min(len(value["men"]), len(value["women"]))
+        gaps.append(men_mean - women_mean)
+        weights.append(weight)
+
+    weighted = (sum(g * w for g, w in zip(gaps, weights)) / sum(weights)
+                if sum(weights) else None)
+    return {"stores_with_both": len(both), "stores_total": len(by_store),
+            "observations_covered": covered, "men_obs": men_obs,
+            "women_obs": women_obs, "weighted_gap": weighted,
+            "unweighted_gap": sum(gaps) / len(gaps) if gaps else None}
 
 
 def report_sellers(res: dict) -> None:

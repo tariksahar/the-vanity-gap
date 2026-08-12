@@ -859,7 +859,8 @@ def draw_precision_sample(category: str, review_limit: int, index: dict,
     strata = [(b, g) for b in FIT_DICTIONARY for g in ("men", "women")]
     reservoir: dict[tuple[str, str], list] = {s: [] for s in strata}
     seen_count: dict[tuple[str, str], int] = {s: 0 for s in strata}
-    stats = {"scanned": 0, "joined": 0, "labelled": 0, "ambiguous": 0}
+    stats = {"scanned": 0, "joined": 0, "labelled": 0, "ambiguous": 0,
+             "outside_window": 0}
 
     for record in iter_records(f"raw_review_{category}", category, review_limit):
         stats["scanned"] += 1
@@ -921,8 +922,14 @@ def draw_precision_sample(category: str, review_limit: int, index: dict,
 # measure. A product title carries no signal about WHICH BUCKET the dictionary
 # assigned, so it does not compromise the blind. It may leak gender, which is the
 # weaker cost: gender is a secondary breakdown, not the gate.
+# Column set fixed by docs/coding-guide.md v1.0 §9. Two changes from the first
+# emission, both from the coding guide: `buyer_gender_mismatch` is renamed
+# `wearer_gender_mismatch` because what matters is whose body the judgement
+# describes, not who paid (guide §2); and `calibration_stated` is added, which
+# flags reviews attributing the sizing to the brand or a regional convention
+# (guide §8) and gives a cheap manual upper bound on the DESIGN.md 5.9 confound.
 BLIND_COLUMNS = ["review_id_hash", "product_title", "review_title", "review_text",
-                 "human_label", "buyer_gender_mismatch"]
+                 "human_label", "wearer_gender_mismatch", "calibration_stated"]
 
 
 def emit_precision_sample(path: pathlib.Path, rows: list, rng: random.Random) -> None:
@@ -950,7 +957,8 @@ def emit_precision_sample(path: pathlib.Path, rows: list, rng: random.Random) ->
               "review_title": row["review_title"],
               "review_text": row["review_text"],
               "human_label": "",
-              "buyer_gender_mismatch": ""} for row in rows]
+              "wearer_gender_mismatch": "",
+              "calibration_stated": ""} for row in rows]
 
     blind_path = path.with_name(path.stem + "_blind.csv")
     with blind_path.open("w", encoding="utf-8", newline="") as handle:
@@ -996,7 +1004,7 @@ def _emit_xlsx(path: pathlib.Path, rows: list, columns: list | None = None) -> N
               "product_title": 52, "category_path": 46, "gender": 8, "body_half": 10,
               "review_title": 40, "review_text": 90,
               "assigned_bucket": 15, "human_label": 16,
-              "buyer_gender_mismatch": 22}
+              "wearer_gender_mismatch": 24, "calibration_stated": 20}
     for index, column in enumerate(columns, start=1):
         letter = sheet.cell(row=1, column=index).column_letter
         sheet.column_dimensions[letter].width = widths.get(column, 14)
@@ -1010,25 +1018,35 @@ def _emit_xlsx(path: pathlib.Path, rows: list, columns: list | None = None) -> N
     validation = DataValidation(
         type="list",
         formula1='"ran_small,true_to_size,ran_large,none,unclear"',
-        allow_blank=True,
+        allow_blank=False,
         showDropDown=False,
     )
-    validation.prompt = ("The bucket YOU judge correct from the text. "
-                         "Use 'none' if the text carries no fit judgement, "
-                         "'unclear' if you cannot tell.")
+    validation.prompt = ("Relative to the buyer's own body, did the garment they actually "
+                         "RECEIVED run small, fit, or run large? Code physical fit, not "
+                         "satisfaction. 'none' = no fit judgement at all; 'unclear' = fit "
+                         "discussed but direction undeterminable. See docs/coding-guide.md.")
     validation.promptTitle = "human_label"
     sheet.add_data_validation(validation)
     validation.add(f"{label_letter}2:{label_letter}{len(rows) + 1}")
 
-    if "buyer_gender_mismatch" in columns:
-        flag_index = columns.index("buyer_gender_mismatch") + 1
+    # Flag columns, per docs/coding-guide.md §9. Leave nothing blank: "no" and
+    # "unclear" are answers, so allow_blank is False on both.
+    for name, values, prompt in [
+        ("wearer_gender_mismatch", '"yes,no,unclear"',
+         "yes when the fit judgement is given for a body whose gender differs from the "
+         "product's gender. Buying on someone else's behalf is not by itself a mismatch."),
+        ("calibration_stated", '"yes,no"',
+         "yes when the review explicitly attributes the sizing to the brand, the "
+         "manufacturer, or a regional sizing convention."),
+    ]:
+        if name not in columns:
+            continue
+        flag_index = columns.index(name) + 1
         flag_letter = sheet.cell(row=1, column=flag_index).column_letter
-        flag_validation = DataValidation(
-            type="list", formula1='"yes,no,unclear"',
-            allow_blank=True, showDropDown=False)
-        flag_validation.prompt = ("yes if the text shows the reviewer is not the wearer, "
-                                  "or is not the gender the garment is sold as.")
-        flag_validation.promptTitle = "buyer_gender_mismatch"
+        flag_validation = DataValidation(type="list", formula1=values,
+                                         allow_blank=False, showDropDown=False)
+        flag_validation.prompt = prompt
+        flag_validation.promptTitle = name
         sheet.add_data_validation(flag_validation)
         flag_validation.add(f"{flag_letter}2:{flag_letter}{len(rows) + 1}")
 

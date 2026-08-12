@@ -132,6 +132,63 @@ be used at all.
 publishing any result resting on the deviation measure until it is closed. One incidental
 observation: 20 of the 21 were women's garments, consistent with §3's 9 : 1 asymmetry.
 
+## 4c. Seller calibration — ANSWERED at 20M reviews, and the answer is "partly"
+
+Re-run 2026-08-11 at the scale §4b said it needed: **19,999,992 reviews** block-sampled across 24
+offsets, against a 400,000-record style index. Yield: **1,253 positive-deviation observations across
+649 distinct stores** — sixty times the earlier attempt, and enough to compute a concentration
+statistic honestly.
+
+| concentration of positive deviation | share |
+|---|---|
+| top 1 store | **12.85%** |
+| top 5 | 23.62% |
+| top 10 | 31.68% |
+| top 25 | 43.58% |
+| top 50 | 52.99% |
+
+**HHI 0.0231**, against a perfectly-spread benchmark of 1/649 = 0.0015. **Effective number of stores:
+43.2** — out of 649.
+
+### The pre-registered reading does not resolve cleanly, and that is reported rather than forced
+
+`PREREGISTRATION.md` §9.1 fixed the interpretation in advance: *concentration in a handful of stores
+⇒ calibration; spread thinly across many ⇒ behavioural.* The measured answer is **neither**.
+
+43 effective stores is not a handful — it is not three sellers driving everything. But it is also
+15× more concentrated than an even spread, and the **single largest store carries 12.85% of all
+positive deviation on its own**. That store is `Funny Civil Engineers Shirt`, a novelty print
+seller, with 194 observations at a mean deviation of **+0.95** — and 161 of its 161 positive
+observations are women's garments.
+
+The store-level mean deviations among the top 15 range from **+0.25** (`CompressionZ`) to **+1.45**
+(`Clementine`). A 1.2-ladder-step spread across sellers is real heterogeneity in the ruler, not
+noise around a common buyer preference. Novelty and print-on-demand sellers — several in the top 15
+— are exactly the population expected to use non-US sizing.
+
+**Verdict: the calibration threat is PARTIALLY CONFIRMED.** It is not the whole story, and it is not
+dismissible. Any use of the deviation measure requires **store-level fixed effects**, and even then
+identification leans on a concentrated set of sellers, which must be stated.
+
+### The primary measure is protected, and this is the useful part
+
+The threat does **not** transfer to `fit_score` under the §7.1 specification, for a structural
+reason: seller calibration is **constant within a style**, and `parent_asin` is nested within store,
+so the **style fixed effects absorb it entirely**. A seller whose garments all run small shifts every
+one of that seller's styles by the same amount, and a style fixed effect removes exactly that.
+
+The deviation measure has no such protection, because no style fixed effects are specified for it —
+it was only ever a triangulation measure. That asymmetry is now the main argument for keeping
+`fit_score` as primary, independent of the cell-count argument in §0.
+
+### Caveat on the join
+
+Only 1,860 of 20M reviews joined to a store-bearing in-scope style — the 400,000-item index covers
+about 5.5% of the corpus's items and the deviation language appears in 0.20% of reviews. The
+concentration statistics are computed on what survived, and a larger index would sample more stores.
+The direction of that limitation is unclear rather than conservative, so it is flagged, not waved
+through.
+
 ## 5. What to do with it
 
 1. **Not the primary measure.** The men's lower cell forbids it.
@@ -141,7 +198,9 @@ observation: 20 of the 21 were women's garments, consistent with §3's 9 : 1 asy
 3. **Fix the disjunctive-size defect** before any use beyond feasibility. *Done 2026-08-11 —
    `small or medium`, `l/xl` and `l-xl` now drop as ambiguous. Prevalence and the +0.708 have NOT
    been re-measured under the fix, so both remain upward-biased.*
-4. **Close the seller-calibration question** (§4b) before the measure is used at all.
+4. **Seller calibration: answered (§4c), partially confirmed.** Store fixed effects are mandatory
+   for any use of this measure. The primary `fit_score` measure is protected by style fixed effects,
+   which absorb seller calibration entirely.
 5. **Model its selection separately.** §5.11 already forbids inheriting the §5.2 reporting model;
    this probe's 21.8%-zero-deviation figure shows why in one number.
 6. **The 9:1 gender asymmetry in sizing talk is worth reporting in its own right**, alongside §5.2's

@@ -14,7 +14,7 @@ being loaded instead, the repository is in the wrong place — fix that before d
 | **Design** | Stable. Thesis, hypothesis, identification strategy and estimand are settled. |
 | **Phase 0 (Mavi feasibility)** | Complete — `docs/faz0-fizibilite-raporu.md`, `docs/mavi-source-notes.md`. |
 | **Mavi collection** | **Blocked.** Cloudflare bot challenge. `docs/mavi-source-notes.md` §6. |
-| **Power analysis** | Complete — `docs/phase0-collection-blocker-and-power.md`. MDE 0.20–0.30 SD. |
+| **Power analysis** | Phase 0: `docs/phase0-collection-blocker-and-power.md`, MDE 0.20–0.30 SD on Mavi. **Amazon, measured 2026-08-11: MDE 0.418 SD** at the 5-year window under the same realistic scenario — a large effect only. `PREREGISTRATION.md` §7.1a. |
 | **Phase 1 (Amazon probe)** | Complete — `docs/phase1-amazon-probe.md`. Corpus is `Clothing_Shoes_and_Jewelry`; it carries the primary estimand but not purchased size. Precision measurement **pending**. |
 | **Phase 1b (size deviation)** | Complete — `docs/phase1b-size-deviation-probe.md`. Real but not primary; men's-lower cell ~330 corpus-wide. |
 | **Phase 2a (dictionary validation)** | Complete — `docs/phase2-dictionary-validation.md`. Two pattern families carry nearly all the error; **no pattern removed in response**, per the pre-commitment. |
@@ -526,6 +526,15 @@ removals are recorded at the removal site in `amazon_fit_probe.py` and in
 `PREREGISTRATION.md` **and** a fresh hand-labelled sample, because scoring a repaired dictionary on
 the labels that exposed it is fitting to the validation set.
 
+**The measure under-captures intentional deviation — `docs/coding-guide.md` §4.** Labelling records
+the garment's physical relation to the body, not the buyer's satisfaction, so "perfect fit, loose but
+flattering" is `ran_large`. Correct — but a buyer who sized up deliberately and is pleased often does
+not mention the looseness at all, and those reviews yield no signal. **`fit_score` therefore captures
+unintended misfit more completely than intended deviation, which is the behaviour §1.2 predicts.**
+The measure is biased against the hypothesis: an effect found under it is stronger than face value,
+and a null is weaker evidence against than it looks. This is the main reason the §5.11 self-reported
+deviation measure is kept alongside it — the two have opposite weaknesses.
+
 **Reading the corpus — `datasets` 5.x.** The `load_dataset(..., trust_remote_code=True)` call
 documented in §3.1 **no longer works**: `datasets` 5.x removed script-based configs and the
 Amazon-Reviews-2023 repository ships one, so the loader raises `RuntimeError: Dataset scripts are no
@@ -691,6 +700,19 @@ Thousands of sellers with inconsistent sizing and a long tail of low-quality lis
 style fixed effects absorb much of it; `verified_purchase` filters some noise — decide whether to
 require it in the pre-registration, not afterwards. Heterogeneity adds variance as well as
 observations: pooled n does not translate one-for-one into precision.
+
+**Seller calibration — measured 2026-08-11, and it is directional, not generic.**
+Amazon is a marketplace and many apparel sellers use non-US sizing that runs small, so
+"order two sizes up" is partly a **review genre** rather than a preference. Measured across 20M
+reviews (`docs/phase1b-size-deviation-probe.md` §4c): **HHI 0.0231** against an even-spread
+benchmark of 0.0015, **43.2 effective stores out of 649**, top store alone carrying **12.85%** of
+positive deviation, and store-level mean deviation spanning **+0.25 to +1.45**. Partially confirmed:
+neither a handful of sellers nor thinly spread.
+
+**The primary estimand is protected and the deviation measure is not.** Seller calibration is
+constant within a style, and `parent_asin` is nested within store, so the **style fixed effects of
+§1.4 absorb it entirely**. Any use of the §5.11 deviation measure instead requires explicit
+**store fixed effects**, and must state that identification leans on a concentrated set of sellers.
 
 ### 5.10 Multiple comparisons
 

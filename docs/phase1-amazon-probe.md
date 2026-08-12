@@ -463,6 +463,38 @@ not a measurement: a labeller who can see the assigned bucket is scoring their a
 number already in front of them. The withheld columns live in a key file and are re-joined on
 `review_id_hash` after labels come back.
 
+### 5.9 The replacement sample — drawn 2026-08-11 from the 2019 window
+
+`--spread 16`, 600,000 reviews against a 250,000-record style index, restricted to reviews from
+**2019 onward** (the §11 A1 window), garment-scoped, six strata of 50.
+
+| stratum | eligible frame | drawn |
+|---|---|---|
+| ran_small / men | 201 | 50 |
+| ran_small / women | 853 | 50 |
+| true_to_size / men | 393 | 50 |
+| true_to_size / women | 1,313 | 50 |
+| **ran_large / men** | **118** | 50 |
+| ran_large / women | 353 | 50 |
+
+All six filled. The binding stratum is `ran_large/men` at 118 eligible — thinner than the 313 the
+first draw saw against a full-history frame, which is the window doing exactly what it was chosen to
+do. It is sufficient: 50 drawn from 118 is a 42% sampling fraction, so the drawn rows are close to a
+census of that stratum in this pass rather than a sparse sample of it.
+
+Files:
+
+| file | role |
+|---|---|
+| `precision_sample_blind.{csv,xlsx}` | **the labelling file** — id, product title, review title, review text, two empty columns |
+| `precision_sample_key.csv` | assigned bucket, gender, body half, category path — **not opened while labelling** |
+
+Joined afterwards on `review_id_hash`. Rationale for what is and is not blinded:
+`PREREGISTRATION.md` §5.0.
+
+**Labelling does not start until Appendix A of `PREREGISTRATION.md` exists.** The coding guide is
+developed against the discarded sample and is the repository owner's judgement to write.
+
 ### Standing
 
 All rates in this document are marked **superseded**; the corrected table above replaces the ones
