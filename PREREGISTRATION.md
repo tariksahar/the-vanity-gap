@@ -65,6 +65,23 @@ length 316 → 142 characters, head to tail). Every rate measured from a file pr
 Rates have been re-measured under systematic block sampling; details in
 `docs/phase1-amazon-probe.md` §5.6. All figures quoted in this document are block-sampled.
 
+### 1.6 The dictionary precision measurement — observed 2026-08-14
+
+The §4.1 gate measure is now measured, blind, on 149 hand-labelled rows:
+`ran_small` **72.5%** [57.2, 83.9], `true_to_size` **96.7%** [88.6, 99.1], `ran_large` **91.5%**
+[80.1, 96.6]. Two buckets pass; `ran_small` spans the threshold and is inconclusive at this n.
+
+Men's-arm precision is **not worse** than women's (78.9% vs 66.7% on `ran_small`, intervals
+overlapping), which is the pre-registered worry not being supported.
+
+**Disclosure — the labels were revised and the audit was not independent.** An initial 46-row pass
+was audited against the coding guide, three systematic misapplications were corrected, labelling
+completed to 149, and a second audit changed four further rows. The audit was performed by the
+party that shaped the coding guide, and **three of the four final corrections moved labels toward
+the reading the dictionary produces.** The revision touched 4 of 149 rows, bounding the inflation at
+roughly three percentage points. **These precision figures are therefore a slight UPPER bound, not a
+neutral estimate.** Full detail: `docs/phase1e-precision-measurement.md` §2.
+
 ### 1.5 What has NOT been observed
 
 **No estimate of `tau`, on any corpus, in any specification.** No regression of `fit_score` on
@@ -488,6 +505,26 @@ amendment prompted by seeing a result must say so explicitly.
 | 2026-08-11 | A2 - labelling made blind; coding guide required as Appendix A before labelling (§5.0) | An unblinded measurement is not a measurement |
 | 2026-08-11 | A3 - `product_title` un-blinded in the labelling file (§5.0) | The non-garment coding rule cannot be applied to review text alone; a product title carries no signal about the assigned bucket |
 | 2026-08-11 | **A4 - fixed effects moved off style level; §7.1a primary/secondary corrected.** COMPLETE | The style-FE specification was unidentified. See below. |
+| 2026-08-14 | **A6 - coding guide Rule 8 sharpened; Rule 1/4 boundary clarified.** COMPLETE | `calibration_stated` was duplicating `human_label`; four boundary rows needed a binding reading. See below. |
+
+### A6 - coding-guide amendments following the labelling pass
+
+**No estimate of `tau` had been run at the time of this amendment, and none has been run since.**
+
+**Rule 8 sharpened.** `calibration_stated` now requires the review to name a brand, manufacturer or
+regional convention **as the cause** of the sizing. "Runs big" is an observation; "these must all be
+tiny asia sizes" is an attribution. Without the restriction the flag duplicates `human_label` and
+carries no independent information. The 149 rows were re-coded: **27 flagged under the loose
+reading, 3 under the sharpened one (2.0%, lower bound).**
+
+**Rule 1 / Rule 4 boundary fixed.** Four rows were genuine judgement calls -- a deliberate size-up
+where the buyer is content with the resulting looseness. The binding reading, applied consistently
+and now written into the guide: **code the realized fit of the garment received, even when the
+looseness was intended.** A deliberate size-up producing a loose garment is `ran_large`.
+
+**An uncovered contamination type** is recorded but not fixed: an adult women's product reviewed for
+a 7-year-old wearer. §1.3 excludes children's products, not child wearers of adult products. One
+occurrence in 149 rows does not justify a rule.
 
 ### A4 - the fixed-effects level, and the §7.1a correction
 

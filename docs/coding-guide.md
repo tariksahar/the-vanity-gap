@@ -175,11 +175,26 @@ choice.
 This is the seller-calibration confound stated in the reviewer's own words: the deviation is the
 manufacturer's ruler, not the buyer's preference.
 
-**Rule.** Set `calibration_stated` when the review explicitly attributes the sizing to the brand,
-the manufacturer or a regional sizing convention. Code the fit label normally as well — the flag
-is additional, not a substitute.
+**Rule (sharpened 2026-08-14 — the original wording was too loose).** Set `calibration_stated`
+only when the review names **a brand, a manufacturer, or a regional sizing convention as the CAUSE**
+of the sizing. Code the fit label normally as well — the flag is additional, not a substitute.
 
-This gives a cheap manual upper bound on the calibration confound without waiting for the
+**The distinction is WHAT versus WHY.**
+
+| | |
+|---|---|
+| *"runs big"*, *"too small"*, *"sized up"* | an **observation** about this garment → **`no`** |
+| *"these must all be tiny asia sizes"*, *"this brand always runs small"*, *"Chinese sizing"* | an **attribution of cause** → **`yes`** |
+
+Without that restriction the flag simply duplicates `human_label` and carries no independent
+information: every `ran_small` review describes a garment running small, so flagging them all
+measures nothing.
+
+**The sample was re-coded under this rule.** Under the loose reading 27 of 149 rows were flagged;
+under the sharpened reading **3 of 149 (2.0%)**. The operative figure is 3, and it is a **lower
+bound** — a reviewer affected by seller calibration who does not say so is not counted.
+
+This gives a cheap manual lower bound on the calibration confound without waiting for the
 full-corpus seller-concentration analysis.
 
 ---
@@ -207,3 +222,52 @@ Labels are joined back to the key file on `review_id_hash` after all rows are co
 This guide is frozen at v1.0. If a case arises that none of the rules above resolve, do not
 improvise: record the row, finish the remaining rows, and amend the guide as a dated revision
 before re-labelling the affected rows. Rules changed mid-pass produce an inconsistent measurement.
+
+
+---
+
+## 11. Revisions
+
+### 2026-08-14 — Rule 8 sharpened
+
+`calibration_stated` narrowed to require an attribution of cause, not an observation of effect. See
+Rule 8 above for the wording and the what-versus-why table. The 149 labelled rows were re-coded:
+27 flagged under the loose reading, **3** under the sharpened one.
+
+### 2026-08-14 — Rule 1 / Rule 4 boundary, clarified
+
+Four rows in the labelled set were genuine judgement calls at the boundary between Rule 1 (code the
+size actually received, ignore advice) and Rule 4 (code physical fit, not satisfaction): **a buyer
+deliberately sizes up, and is content with the resulting looseness.**
+
+The resolution applied, and now binding for all future labelling:
+
+> **Code the realized fit of the garment received, even when the looseness was intended and the
+> buyer is satisfied with it.** A deliberate size-up that produced a loose garment is `ran_large`.
+
+This follows from both rules rather than trading them off: Rule 1 says judge the size received, and
+Rule 4 says judge the physical relation rather than the buyer's approval of it. It is recorded here
+because the four rows were decided consistently and that decision is now the operative reading, not
+because the rules conflicted.
+
+Worked example from the set — *"Read reviews and thought I ordered accordingly. Went a size up, but
+should have just gotten a small… Got a medium. Won't bother returning it, but would have preferred
+the small"* → **`ran_large`**. The reviewer sized up, the garment is bigger than they wanted, and
+their tolerance of it does not change the physical fact.
+
+**Consequence for the dictionary, not for the guide.** The regex reads *"went a size up"* as
+`ran_small`, because the phrase describes the product's calibration. The human reads the realized
+fit as `ran_large`. This is the §5.3 construct split showing up as a measured disagreement rather
+than an argument, and it is the reason adjustment-advice language is a style-level covariate rather
+than part of `fit_score`.
+
+### 2026-08-14 — uncovered contamination type, noted not fixed
+
+One labelled row is an **adult women's product reviewed for a 7-year-old wearer**. §1.3 excludes
+children's *products* but says nothing about child *wearers* of adult products, so the exclusion
+does not catch it and neither does `wearer_gender_mismatch`, which asks about gender rather than
+age.
+
+Recorded, deliberately **not fixed**: one occurrence in 149 rows is not evidence of a systematic
+problem, and adding an age rule on that basis would be fitting the guide to a single case. If it
+proves common in later labelling, it needs its own flag.

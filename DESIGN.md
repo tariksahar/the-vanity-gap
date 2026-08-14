@@ -18,6 +18,7 @@ being loaded instead, the repository is in the wrong place — fix that before d
 | **Phase 1 (Amazon probe)** | Complete — `docs/phase1-amazon-probe.md`. Corpus is `Clothing_Shoes_and_Jewelry`; it carries the primary estimand but not purchased size. Precision measurement **pending**. |
 | **Phase 1b (size deviation)** | Complete — `docs/phase1b-size-deviation-probe.md`. Real but not primary; men's-lower cell ~330 corpus-wide. |
 | **Phase 2a (dictionary validation)** | Complete — `docs/phase2-dictionary-validation.md`. Two pattern families carry nearly all the error; **no pattern removed in response**, per the pre-commitment. |
+| **Precision (§4.1 gate)** | **Measured 2026-08-14** — `docs/phase1e-precision-measurement.md`. `true_to_size` 96.7% and `ran_large` 91.5% PASS; `ran_small` 72.5% [57.2, 83.9] **inconclusive**. 149 of 300 rows labelled, by decision. Figures are a slight upper bound — see the disclosure. |
 | **Specification** | **Corrected 2026-08-11.** Style-level FE was unidentified; fixed effects move to garment category, seller becomes a covariate. `docs/phase1d-specification-error.md`. |
 | **Analysis window** | **2019 onward (5 years)**, set empirically 2026-08-11 — `docs/phase1c-time-window.md`. The old 12–18 month default gave 12 observations in the men's-lower anchor cell. |
 | **Sampling validity** | **Files are ordered (2026-08-11).** Prefix-based rates superseded; re-measuring under `--spread`. §5.13. |
@@ -902,6 +903,8 @@ the-vanity-gap/
     phase1b-size-deviation-probe.md
     phase1c-time-window.md
     phase1d-specification-error.md
+    phase1e-precision-measurement.md
+    coding-guide.md
     phase2-dictionary-validation.md
   src/
     adapters/          # one module per source, shared interface
