@@ -9,7 +9,8 @@
 
 ## 0. Headline
 
-**λ = 0.763** [0.621, 0.927], against **λ_min = 0.73**.
+**λ = 0.763** [0.621, 0.927] clustering on `parent_asin`, or **0.741** [0.590, 0.920] clustering on
+`store` — the coarser and more defensible unit (§5.1). Against **λ_min = 0.73**.
 
 The point estimate passes. The interval straddles the threshold. Under the operative §5.3
 specification — adjustment-advice language routed to a covariate rather than into `fit_score` —
@@ -190,6 +191,39 @@ The four heavy parents are the print-on-demand novelty listing (15 rows), an Ama
 flannel shirt (11), a Wrangler jean (10) and a jeggings listing (9) — the same mega-listing pattern
 that drives CV = 11.3 in `docs/phase1d-specification-error.md`. It is the same phenomenon appearing
 in a third place.
+
+### 5.1 Store-level clustering — coarser, and probably the right one
+
+`store` was resolved for **83 of the 92 parents**, covering **139 of 149 rows (93%)**, across
+**68 distinct stores**.
+
+| | parent-level | store-level |
+|---|---|---|
+| clusters | 92 | 68 |
+| largest cluster | 15 rows (10.1%) | **20 rows (13.4%)** — Amazon Essentials |
+| clusters > 5% of rows | 4 | 4 |
+| **λ** | 0.763 | 0.741 |
+| **λ 95% CI** | [0.621, 0.927] | **[0.590, 0.920]** |
+
+Top stores by rows: Amazon Essentials 20 (13.4%), Funny Civil Engineers Shirt 15 (10.1%),
+Wrangler Authentics 11 (7.4%), Prolific Health 9 (6.0%), Hanes 6 (4.0%).
+
+**Store is the coarser cluster and gives the wider interval, and there is a substantive reason to
+prefer it.** Seller calibration is a property of the *store*, not of the individual listing — the
+20M-review analysis (`docs/phase1b-size-deviation-probe.md` §4c) found store-level mean deviation
+spanning +0.25 to +1.45. Reviews of two different Amazon Essentials garments share that seller's
+ruler, so their labelling errors are not independent even though the products are.
+
+**Reading:** the conservative λ interval is **[0.590, 0.920]**, whose lower bound sits further below
+λ_min = 0.73 than the parent-level one. This does not change the verdict — the point estimate passes
+and the interval straddles either way — but it widens the straddle and is the number to quote.
+
+Precision under store-level clustering, resolved subset: `ran_small` 69.4% [54.8%, 81.8%],
+`true_to_size` 98.3% [93.5%, 100.0%], `ran_large` 90.7% [83.7%, 97.5%].
+
+**Caveat:** 10 rows (7%) could not be resolved to a store within the 600,000-record metadata pass and
+are dropped from the store-level figures, so the two columns are not computed on identical samples.
+The λ point estimates differ by 0.022, most of which is that subsetting rather than the clustering.
 
 ---
 

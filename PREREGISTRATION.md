@@ -557,7 +557,8 @@ depending on which way their errors go.
 
 | subset | λ (forward) | 95% CI (cluster bootstrap) | verdict vs 0.73 |
 |---|---|---|---|
-| pooled | **0.763** | [0.621, 0.927] | point PASSES; interval straddles |
+| pooled, clustered on `parent_asin` | **0.763** | [0.621, 0.927] | point PASSES; interval straddles |
+| pooled, clustered on `store` (conservative) | 0.741 | [0.590, 0.920] | point PASSES; interval straddles wider |
 | men | 0.741 | [0.570, 0.978] | point passes; interval straddles |
 | women | 0.784 | [0.551, 1.000] | point passes; interval straddles |
 | **adjustment-advice family excluded** | **0.886** | [0.737, 1.000] | **passes on point AND interval** |
