@@ -111,10 +111,23 @@ KEY = ROOT / "data/processed/precision_sample_key.csv"
 # Data
 # ---------------------------------------------------------------------------
 
+STORE_MAP = ROOT / "data/processed/parent_store.json"
+
+
+def load_store_map() -> dict[str, str]:
+    """parent_asin -> store, resolved from item metadata. Empty if absent."""
+    import json
+
+    if not STORE_MAP.exists():
+        return {}
+    return json.loads(STORE_MAP.read_text(encoding="utf-8"))
+
+
 def load_rows(path: pathlib.Path = LABELLED, key_path: pathlib.Path = KEY) -> list[dict]:
     """Labelled rows with the key fields attached. One dict per review."""
     from openpyxl import load_workbook
 
+    store_map = load_store_map()
     key = {r["review_id_hash"]: r for r in csv.DictReader(
         key_path.open(encoding="utf-8"))}
     sheet = load_workbook(path, data_only=True).active
@@ -130,6 +143,7 @@ def load_rows(path: pathlib.Path = LABELLED, key_path: pathlib.Path = KEY) -> li
             continue
         rows.append({
             "parent": entry["parent_asin"],
+            "store": store_map.get(entry["parent_asin"]),
             "assigned": entry["assigned_bucket"],
             "gender": entry["gender"],
             "half": entry["body_half"],
@@ -204,6 +218,87 @@ def lambda_forward(matrix, prevalence=None, none_as_zero: bool = True):
     return lam, residual, a
 
 
+# P(assigned = k | gender, body_half) in the analysis population. Measured by
+# `style_definition_probe.py` on 3,000,000 block-sampled reviews in the 2019
+# window against a 400,000-record style index -- 16,029 labelled observations.
+# No earlier probe reported this breakdown; `p_0(cell)` cannot be built without
+# it. Counts, not shares, so the weighting is transparent.
+CELL_ASSIGNED: dict[tuple[str, str], dict[str, float]] = {
+    ("men", "upper"):   {"ran_small": 826.0, "true_to_size": 1217.0, "ran_large": 342.0},
+    ("men", "lower"):   {"ran_small": 546.0, "true_to_size": 1113.0, "ran_large": 346.0},
+    ("women", "upper"): {"ran_small": 3358.0, "true_to_size": 4025.0, "ran_large": 1082.0},
+    ("women", "lower"): {"ran_small": 947.0, "true_to_size": 1693.0, "ran_large": 534.0},
+}
+
+
+def p_zero_by_cell(matrix, cell_assigned=None, none_as_zero: bool = True):
+    """P(true = true_to_size | cell), for each gender x half cell.
+
+    Built as `sum_k P(true=0 | assigned=k) * P(assigned=k | cell)`. The first
+    factor comes from the 149 hand labels; the second from the whole analysis
+    population. So the uncertainty in `p_0` is essentially all on the label side.
+    """
+    cell_assigned = cell_assigned or CELL_ASSIGNED
+    if not cell_assigned:
+        return {}
+    p = _row_conditionals(matrix, none_as_zero)
+    if p is None:
+        return {}
+    out = {}
+    for cell, assigned in cell_assigned.items():
+        total = sum(assigned.values())
+        if total <= 0:
+            continue
+        out[cell] = sum(p[k]["true_to_size"] * assigned[k] / total for k in BUCKETS)
+    return out
+
+
+def sd_fit_score(prevalence=None) -> float:
+    """SD of the MEASURED fit_score in the analysis population.
+
+    Scores are -1 / 0 / +1 with the assigned-bucket prevalence, so
+    Var = (w_small + w_large) - (w_large - w_small)^2. The bias term is a
+    difference of means and is converted to SD units by dividing by this.
+    """
+    prevalence = prevalence or ASSIGNED_PREVALENCE
+    total = sum(prevalence[k] for k in BUCKETS)
+    w = {k: prevalence[k] / total for k in BUCKETS}
+    mean = w["ran_large"] - w["ran_small"]
+    return ((w["ran_small"] + w["ran_large"]) - mean ** 2) ** 0.5
+
+
+def residual_bias(rows: list[dict], cell_assigned=None, prevalence=None):
+    """The term the residual contributes to `tau`, in SD units of fit_score.
+
+    From `E[y | cell] = c + lambda * E[y* | cell] + delta * p_0(cell)`:
+
+        tau_measured = [l_m*D*_m + d_m*Dp0_m] - [l_w*D*_w + d_w*Dp0_w]
+
+    `c` cancels in the double difference. `delta * Dp0` does not. So even with
+    `lambda_men == lambda_women`, a difference in `delta` biases `tau` whenever
+    `Dp0 != 0`.
+
+    Returns (bias_in_sd, parts) or (None, {}) when `CELL_ASSIGNED` is unset.
+    """
+    cell_assigned = cell_assigned or CELL_ASSIGNED
+    if not cell_assigned:
+        return None, {}
+    parts = {}
+    for gender in ("men", "women"):
+        subset = [r for r in rows if r["gender"] == gender]
+        _lam, delta, _a = lambda_forward(confusion(subset), prevalence)
+        if delta is None:
+            return None, {}
+        p0 = p_zero_by_cell(confusion(subset), cell_assigned)
+        upper, lower = p0.get((gender, "upper")), p0.get((gender, "lower"))
+        if upper is None or lower is None:
+            return None, {}
+        parts[gender] = {"delta": delta, "p0_upper": upper, "p0_lower": lower,
+                         "dp0": upper - lower, "term": delta * (upper - lower)}
+    raw = parts["men"]["term"] - parts["women"]["term"]
+    return raw / sd_fit_score(prevalence), parts
+
+
 def mde_operative(mde_design: float, lam: float) -> float:
     """The true effect size the study can actually detect."""
     if lam <= 0:
@@ -217,17 +312,27 @@ def mde_operative(mde_design: float, lam: float) -> float:
 # ---------------------------------------------------------------------------
 
 def cluster_bootstrap(rows: list[dict], statistic, replicates: int = 4000,
-                      seed: int = 20260814) -> tuple[float, float, list[float]]:
-    """Percentile CI for `statistic(rows)`, resampling `parent_asin` clusters.
+                      seed: int = 20260814,
+                      unit: str = "parent") -> tuple[float, float, list[float]]:
+    """Percentile CI for `statistic(rows)`, resampling clusters.
 
-    Parents are resampled globally rather than within stratum: 13 of them span
+    `unit` is `parent` or `store`. **Store is the quoted unit.** Seller
+    calibration is a property of the store, not of the listing -- store-level
+    mean deviation spans +0.25 to +1.45 across sellers
+    (docs/phase1b-size-deviation-probe.md 4c) -- so two garments from one seller
+    share that seller's ruler and their labelling errors are not independent
+    even though the products are. Store is also the coarser partition here (68
+    clusters against 92), so it gives the wider interval.
+
+    Clusters are resampled globally rather than within stratum: 13 parents span
     more than one assigned bucket, so within-stratum resampling would break the
     cross-stratum dependence it is supposed to preserve.
     """
     rng = random.Random(seed)
     by_parent = collections.defaultdict(list)
     for row in rows:
-        by_parent[row["parent"]].append(row)
+        key = row.get(unit) or row["parent"]
+        by_parent[key].append(row)
     parents = list(by_parent)
 
     draws = []

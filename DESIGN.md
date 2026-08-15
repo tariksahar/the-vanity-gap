@@ -19,7 +19,8 @@ being loaded instead, the repository is in the wrong place — fix that before d
 | **Phase 1b (size deviation)** | Complete — `docs/phase1b-size-deviation-probe.md`. Real but not primary; men's-lower cell ~330 corpus-wide. |
 | **Phase 2a (dictionary validation)** | Complete — `docs/phase2-dictionary-validation.md`. Two pattern families carry nearly all the error; **no pattern removed in response**, per the pre-commitment. |
 | **Precision** | Measured 2026-08-14 — `docs/phase1e-precision-measurement.md`. `true_to_size` 98.3%, `ran_large` 91.5%, `ran_small` 72.5%. 149 of 300 rows labelled, by decision. A slight upper bound — see the disclosure. |
-| **§4.1 gate (attenuation)** | **λ = 0.763** [0.621, 0.927] against λ_min = 0.73 — point passes, interval straddles. Under §5.3 routing **λ = 0.886** [0.737, 1.000], passes on both. Operative MDE **0.287 SD**. `docs/phase1f-attenuation.md`. |
+| **§4.1 gate (attenuation)** | **NOT PASSED — and not failed.** Store-level: λ = 0.741 [0.590, 0.920] as-is, **0.878 [0.723, 1.000]** under §5.3 routing, against λ_min = 0.73. In every specification the point estimate is above the threshold and the interval spans it. That is a statement about 149 hand labels. Operative MDE **0.249 SD** (§5.3, mega-listings excluded). `docs/phase1f-attenuation.md`. |
+| **Style definition (A5)** | Structural question **answered** 2026-08-14 — `docs/phase1g-style-definition.md`. Catalogue listings (12,004 asins vs median 17) are not styles. Decision open, and it is about **population**, not power: they are 41.8% of women/upper and 0% of women/lower. |
 | **Specification** | **Corrected 2026-08-11.** Style-level FE was unidentified; fixed effects move to garment category, seller becomes a covariate. `docs/phase1d-specification-error.md`. |
 | **Analysis window** | **2019 onward (5 years)**, set empirically 2026-08-11 — `docs/phase1c-time-window.md`. The old 12–18 month default gave 12 observations in the men's-lower anchor cell. |
 | **Sampling validity** | **Files are ordered (2026-08-11).** Prefix-based rates superseded; re-measuring under `--spread`. §5.13. |
@@ -941,6 +942,7 @@ the-vanity-gap/
     phase1d-specification-error.md
     phase1e-precision-measurement.md
     phase1f-attenuation.md
+    phase1g-style-definition.md
     coding-guide.md
     phase2-dictionary-validation.md
   src/

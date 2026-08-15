@@ -493,6 +493,37 @@ direction of the resulting bias **cannot be signed in advance**: it depends on t
 magnitudes of `Δ_men` and `Δ_women`, which are the very things being estimated. A correction applied
 without knowing them could move the estimate either way.
 
+### 9.7a The residual `δ` is a term in `tau`, not a diagnostic
+
+Measured `2026-08-14` (`docs/phase1g-style-definition.md` §4): **δ_men = +0.170, δ_women = +0.047**.
+The gap of 0.123 is **three times** the λ gap.
+
+From `E[y|cell] = c + λ·E[y*|cell] + δ·p₀(cell)`, the constant cancels in the double difference and
+`δ·p₀` does not:
+
+```
+tau_measured = [λ_m·Δ*_m + δ_m·Δp₀_m] − [λ_w·Δ*_w + δ_w·Δp₀_w]
+```
+
+**So `tau` is biased whenever `δ` differs across genders and `Δp₀ ≠ 0`, even if `λ_men = λ_women`.**
+
+**Measured bias: −0.0068 SD, 95% CI [−0.0260, +0.0172]** — 2.3% of the 0.30 SD target, sign not
+established. `δ` comes from the 149 labels; `Δp₀` from the full analysis population, so the
+uncertainty is essentially all on the label side and the interval above is a cluster bootstrap over
+them.
+
+**The direction runs AGAINST the hypothesis here, and that is not something to rely on.** A positive
+δ pushes truly-fitting garments toward `ran_large`, which inflates the men's *level* — the direction
+the hypothesis predicts. But the level cancels in the within-gender difference, and what survives
+depends on the sign of `Δp₀`. Men's lower cell holds more truly-`true_to_size` items than men's
+upper (0.574 vs 0.539), so the push is larger in the lower cell and the men's difference is pushed
+**down**. **`Δp₀ > 0` would reverse this and the residual would mimic the effect.** The sign is a
+property of this corpus under this window and dictionary; it is recomputed whenever any of those
+change, never assumed.
+
+**Binding: no output reports λ without δ.** They are two coefficients of one expansion, and λ alone
+describes the measurement only under `δ = 0`, which is false.
+
 **Fixed in advance, and binding:**
 
 1. **The PRIMARY estimate is reported UNCORRECTED.** It is the measured `tau`, attenuated, and
@@ -538,8 +569,35 @@ amendment prompted by seeing a result must say so explicitly.
 | 2026-08-11 | A2 - labelling made blind; coding guide required as Appendix A before labelling (§5.0) | An unblinded measurement is not a measurement |
 | 2026-08-11 | A3 - `product_title` un-blinded in the labelling file (§5.0) | The non-garment coding rule cannot be applied to review text alone; a product title carries no signal about the assigned bucket |
 | 2026-08-11 | **A4 - fixed effects moved off style level; §7.1a primary/secondary corrected.** COMPLETE | The style-FE specification was unidentified. See below. |
+| 2026-08-14 | **A8 - `MDE_target` locked at 0.30 SD, before the A5 decision.** COMPLETE | The easiest mistake available; locked so it cannot drift. |
 | 2026-08-14 | **A7 - the ~80% precision gate replaced by an attenuation gate `λ >= λ_min`.** COMPLETE | 80% was an underived convention unconnected to the target effect size. See below. |
 | 2026-08-14 | **A6 - coding guide Rule 8 sharpened; Rule 1/4 boundary clarified.** COMPLETE | `calibration_stated` was duplicating `human_label`; four boundary rows needed a binding reading. See below. |
+
+### A8 - the target effect size is LOCKED at 0.30 SD
+
+**Dated 2026-08-14. Fixed BEFORE the §11 A5 mega-listing decision, and before any
+estimate of `tau`.**
+
+`MDE_target = 0.30 SD`. It is not a new number: it is the pessimistic end of the
+0.20-0.30 SD band the Phase 0 power analysis established as realistic for this design
+(`docs/phase0-collection-blocker-and-power.md` §3.3), computed on Mavi before Amazon was
+in scope and therefore uncontaminated by anything measured since.
+
+**It will not be moved.** Not to 0.35, not to "a moderate effect", not to whatever the
+final MDE happens to be. Every quantity downstream of it -- `λ_min = MDE_design /
+MDE_target`, the gate verdict, the A5 decision -- inherits its authority from the target
+having been fixed in advance. A target adjusted after seeing that something does not fit
+inside it converts the whole apparatus into a description of what we found.
+
+**This is the single easiest mistake available in this project**, because the machinery
+is now elaborate enough that a small change here propagates invisibly: raising the target
+to 0.35 would lower `λ_min` to 0.63, and every straddling interval in this document would
+become a clean pass without a word being written about why.
+
+If a later finding genuinely justifies a different target -- for instance a published
+effect size for this phenomenon that makes 0.30 obviously wrong -- it is changed by a
+dated amendment here that states what the old value was, what the new one is, what
+evidence forced it, and **which verdicts flip as a result**. Never silently.
 
 ### A7 - the precision gate is replaced by an attenuation gate
 
@@ -555,19 +613,25 @@ depending on which way their errors go.
 
 **Measured result:**
 
-| subset | λ (forward) | 95% CI (cluster bootstrap) | verdict vs 0.73 |
-|---|---|---|---|
-| pooled, clustered on `parent_asin` | **0.763** | [0.621, 0.927] | point PASSES; interval straddles |
-| pooled, clustered on `store` (conservative) | 0.741 | [0.590, 0.920] | point PASSES; interval straddles wider |
-| men | 0.741 | [0.570, 0.978] | point passes; interval straddles |
-| women | 0.784 | [0.551, 1.000] | point passes; interval straddles |
-| **adjustment-advice family excluded** | **0.886** | [0.737, 1.000] | **passes on point AND interval** |
+Quoted at **store** clustering on the 139 store-resolved rows:
 
-**The operative specification passes; the naive one only just does.** Under §5.3 -- adjustment-advice
-language routed to a style-level covariate rather than into `fit_score` -- λ rises to 0.886 and its
-interval lower bound clears λ_min. Keeping that family inside `fit_score` leaves λ at 0.763 with an
-interval that straddles the threshold. This is independent evidence for the §5.3 decision, arrived
-at from a different direction than the precision argument that motivated it.
+| subset | λ (forward) | 95% CI | verdict vs λ_min = 0.73 |
+|---|---|---|---|
+| as-is | 0.741 | [0.590, 0.920] | point above, **interval straddles** |
+| **§5.3 routing** (operative) | **0.878** | [0.723, 1.000] | point above, **interval straddles** |
+| men, as-is | 0.721 | [0.552, 1.000] | **point BELOW**, interval straddles |
+| women, as-is | 0.761 | [0.513, 1.000] | point above, interval straddles |
+
+**THE GATE IS NOT PASSED, AND NOT FAILED.** In every specification the point estimate sits above
+λ_min and the interval spans it. This is a statement about **149 hand labels**: the interval is
+roughly ±0.17 wide and cannot resolve λ_min unless the truth is far from it.
+
+Neither upper bound is informative -- both pin at **1.000**, the boundary the percentile bootstrap
+cannot cross, and λ <= 1 by construction.
+
+**The §5.3 routing helps substantially and still does not clear the gate**: λ 0.741 -> 0.878,
+interval lower bound 0.590 -> 0.723 against a threshold of 0.730. That is independent support for a
+decision made on precision grounds, not a pass.
 
 **Operative MDE:** 0.287 SD pooled with mega-listings excluded; **0.745 SD if they are kept.** The
 gate is unsatisfiable in the second case, since it would require λ >= 1.89.
@@ -665,10 +729,32 @@ print-on-demand novelty listing whose one parent covers a whole catalogue of des
 styles is 1. `DESIGN.md` §1.6 treats `parent_asin` as a style; for these sellers it is a product
 line.
 
-**OPEN DECISION, owner's, to be fixed here before any estimation.** Keep such listings (MDE 0.568),
-exclude listings above a stated observation threshold as not being styles (MDE ~0.22), or model them
-separately. This moves the headline power figure by a factor of 2.6, so the rule must be written
-down in advance rather than chosen after seeing which produces a better answer.
+**STRUCTURAL QUESTION ANSWERED 2026-08-14** -- `docs/phase1g-style-definition.md`. The framing
+"exclude mega-listings or not" was unanswerable, because the MDE consequence of each answer was
+already known. Asked as DESIGN.md 1.6's own question -- when is a `parent_asin` a style? -- it is
+settled on structure without consulting the MDE:
+
+`B07TVHSDMQ` carries **12,004 distinct asins** against a typical parent's median of **17**, at ~1
+review per asin, and its review titles name unrelated products ("The boiler tshirt", "Vote tshirt"
+under a civil-engineering slogan listing). **It is not a style.** By contrast a Hanes sweatshirt with
+150 asins and 20.5 reviews each IS a style, and a heavy one -- heaviness is not the criterion. The
+criterion is whether the asin count exceeds what the garment's size grid can generate.
+
+**Reviews per asin does not discriminate** (1.15 heavy vs 1.26 typical) and is recorded as a failed
+statistic.
+
+**THE DECISION THAT REMAINS IS NOT ABOUT POWER.** The heavy listings supply **41.76% of women/upper
+and 0.00% of women/lower**. Excluding them removes 42% of one arm of the women's within-gender
+contrast and none of the other, reshaping what that difference measures. Men's cells are affected
+more evenly (24.15% vs 14.11%).
+
+Three coherent positions, to be chosen by the owner and fixed here before estimation:
+
+1. **Exclude**, and state the population change -- the study describes conventional apparel.
+2. **Keep**, and accept MDE 0.568 as the honest figure for the data as it is.
+3. **Split the parent** -- cluster on `asin` for listings failing the structural test. Neither
+   discards observations nor pretends one listing is one style. This option did not exist before the
+   measurement.
 
 ### A1 - the analysis window is measured, not asserted
 

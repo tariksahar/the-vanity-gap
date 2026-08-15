@@ -9,15 +9,31 @@
 
 ## 0. Headline
 
-**λ = 0.763** [0.621, 0.927] clustering on `parent_asin`, or **0.741** [0.590, 0.920] clustering on
-`store` — the coarser and more defensible unit (§5.1). Against **λ_min = 0.73**.
+Quoted at **store level**, on the 139 rows that resolve to a store:
 
-The point estimate passes. The interval straddles the threshold. Under the operative §5.3
-specification — adjustment-advice language routed to a covariate rather than into `fit_score` —
-**λ = 0.886** [0.737, 1.000] and the interval lower bound clears λ_min too.
+| specification | λ | 95% CI (store cluster) | vs λ_min = 0.73 |
+|---|---|---|---|
+| as-is | **0.741** | [0.590, 0.920] | point above, **interval straddles** |
+| **§5.3 routing** (operative) | **0.878** | [0.723, 1.000] | point above, **interval straddles** |
+| men, as-is | 0.721 | [0.552, 1.000] | **point below**, interval straddles |
+| women, as-is | 0.761 | [0.513, 1.000] | point above, interval straddles |
 
-**Operative MDE: 0.287 SD.** Just inside the 0.30 target — but only if print-on-demand mega-listings
-are excluded. If they are kept it is 0.745 SD and the gate cannot be met by any measurement.
+**The gate is not passed.** In every specification the point estimate sits above λ_min and the
+interval spans it. That is a statement about **149 hand labels**, not about the dictionary: at this
+sample size the interval is roughly ±0.17 wide and could not resolve λ_min either way unless the
+truth were far from it.
+
+Two things must not be said, and were said in an earlier draft of this document:
+
+- **not** "the §5.3 specification passes on both point and interval". That was true at
+  `parent_asin` clustering (lower bound 0.737) and is false at store clustering (0.723). A margin
+  of 0.007 was never a pass in the first place.
+- **not** that either upper bound is informative. Both sit at **1.000**, which is where the
+  percentile bootstrap pins against the boundary. λ ≤ 1 by construction, so an upper bound of 1.000
+  carries no information, and the same anti-conservatism that affects precision near 1 affects λ.
+
+**Operative MDE at the §5.3 specification: 0.249 SD** with mega-listings excluded, **0.647 SD** with
+them kept.
 
 ---
 
@@ -129,14 +145,18 @@ two equations fitted to three, so a residual is expected; **the men's residual o
 largest and is a caveat on the men's λ specifically** — the one-number summary hides more structure
 there than elsewhere.
 
-### 3.3 The §5.3 routing gains 0.12 of λ
+### 3.3 The §5.3 routing gains about 0.14 of λ
 
-Excluding the adjustment-advice family lifts λ from 0.763 to **0.886**, and lifts the interval's
-lower bound from 0.621 to 0.737 — from straddling λ_min to clearing it.
+At store clustering on the resolved rows, excluding the adjustment-advice family lifts λ from
+**0.741 to 0.878**, and the interval's lower bound from 0.590 to **0.723**.
 
-That decision was originally made on precision grounds, from the ModCloth per-pattern diagnosis.
-**It now has independent support from a different quantity computed a different way**, which is
-worth more than the same argument told twice.
+That decision was originally made on precision grounds, from the ModCloth per-pattern diagnosis, so
+this is independent support from a different quantity computed a different way — worth more than the
+same argument told twice.
+
+**But it does not clear the gate.** 0.723 is below λ_min = 0.73. The routing moves λ a long way and
+still leaves the interval spanning the threshold, which is the sample size talking rather than the
+specification.
 
 ---
 
@@ -208,22 +228,38 @@ in a third place.
 Top stores by rows: Amazon Essentials 20 (13.4%), Funny Civil Engineers Shirt 15 (10.1%),
 Wrangler Authentics 11 (7.4%), Prolific Health 9 (6.0%), Hanes 6 (4.0%).
 
-**Store is the coarser cluster and gives the wider interval, and there is a substantive reason to
-prefer it.** Seller calibration is a property of the *store*, not of the individual listing — the
-20M-review analysis (`docs/phase1b-size-deviation-probe.md` §4c) found store-level mean deviation
-spanning +0.25 to +1.45. Reviews of two different Amazon Essentials garments share that seller's
-ruler, so their labelling errors are not independent even though the products are.
+**Store is preferred for a substantive reason.** Seller calibration is a property of the *store*,
+not of the individual listing — the 20M-review analysis
+(`docs/phase1b-size-deviation-probe.md` §4c) found store-level mean deviation spanning +0.25 to
++1.45. Two Amazon Essentials garments share that seller's ruler, so their labelling errors are not
+independent even though the products are.
 
-**Reading:** the conservative λ interval is **[0.590, 0.920]**, whose lower bound sits further below
-λ_min = 0.73 than the parent-level one. This does not change the verdict — the point estimate passes
-and the interval straddles either way — but it widens the straddle and is the number to quote.
+### 5.2 The clustering unit turns out barely to matter — a correction
+
+An earlier draft of this document asserted that store clustering "gives the wider interval". **That
+was wrong, and the same-sample comparison the brief asked for is what caught it.**
+
+| | n | λ | 95% CI |
+|---|---|---|---|
+| all rows, cluster = parent | 149 | 0.763 | [0.621, 0.927] |
+| resolved only, cluster = **parent** | 139 | **0.741** | **[0.589, 0.915]** |
+| resolved only, cluster = **store** | 139 | **0.741** | **[0.590, 0.920]** |
+
+On identical rows the two are **indistinguishable** — the same point estimate to three decimals and
+intervals differing in the third. **The entire 0.022 shift is the ten dropped rows, not the
+clustering unit.**
+
+In hindsight the point estimates *had* to coincide: λ is computed from the confusion matrix, and the
+clustering unit affects only the interval. The informative part is that the intervals coincide too,
+and the reason is that the two partitions nearly are the same one — 68 stores across 83 parents, so
+most stores contribute exactly one listing. Store is barely coarser than parent here, so it cannot
+be much more conservative.
+
+**What survives:** store remains the right unit on the substantive argument above, and the quoted
+figure is the store one. What does not survive is any claim that choosing it buys extra caution.
 
 Precision under store-level clustering, resolved subset: `ran_small` 69.4% [54.8%, 81.8%],
 `true_to_size` 98.3% [93.5%, 100.0%], `ran_large` 90.7% [83.7%, 97.5%].
-
-**Caveat:** 10 rows (7%) could not be resolved to a store within the 600,000-record metadata pass and
-are dropped from the store-level figures, so the two columns are not computed on identical samples.
-The λ point estimates differ by 0.022, most of which is that subsetting rather than the clustering.
 
 ---
 
