@@ -473,6 +473,39 @@ This is the principal reason the §5.4 self-reported deviation measure is retain
 problems: it captures intentional deviation **directly**. The two measures have opposite weaknesses,
 which is what makes them worth carrying together rather than one being redundant.
 
+### 9.7 Differential measurement error, and which estimate is confirmatory
+
+Measured attenuation (`docs/phase1f-attenuation.md`): **λ = 0.763 pooled** [0.621, 0.927],
+**λ_men = 0.741** [0.570, 0.978], **λ_women = 0.784** [0.551, 1.000].
+
+The two gender-specific factors differ by 0.043 with intervals that overlap almost entirely, so
+**there is no evidence of differential error — and the sample cannot exclude it either.** 149 rows
+split by gender cannot resolve a difference of that size.
+
+**Why this matters for the estimand.** If error were non-differential the measured quantity would be
+a clean `λ·tau`, and dividing by λ would recover the truth. If it is differential the measured
+quantity is instead
+
+    tau_measured = λ_men · Δ_men − λ_women · Δ_women
+
+which is **not** `λ·tau` for any single λ, and no scalar correction recovers `tau`. Worse, the
+direction of the resulting bias **cannot be signed in advance**: it depends on the signs and relative
+magnitudes of `Δ_men` and `Δ_women`, which are the very things being estimated. A correction applied
+without knowing them could move the estimate either way.
+
+**Fixed in advance, and binding:**
+
+1. **The PRIMARY estimate is reported UNCORRECTED.** It is the measured `tau`, attenuated, and
+   labelled as such. It is the confirmatory number.
+2. **The λ-correction is a SENSITIVITY analysis**, reported alongside and never in place of the
+   primary. Both the single-λ version (`tau/λ`) and the gender-specific version are shown.
+3. **If the two disagree materially, that disagreement is the finding** and is reported as evidence
+   that measurement error is differential — not resolved by picking whichever is more convenient.
+
+This ordering is fixed now, before any estimate exists, precisely because the choice between a
+corrected and an uncorrected headline is exactly the kind of decision that becomes unprincipled once
+the numbers are visible.
+
 ### 9.5 Oversized fashion
 
 A general trend toward loose fits would raise `ran_large` for everyone. It does not by itself
@@ -505,7 +538,46 @@ amendment prompted by seeing a result must say so explicitly.
 | 2026-08-11 | A2 - labelling made blind; coding guide required as Appendix A before labelling (§5.0) | An unblinded measurement is not a measurement |
 | 2026-08-11 | A3 - `product_title` un-blinded in the labelling file (§5.0) | The non-garment coding rule cannot be applied to review text alone; a product title carries no signal about the assigned bucket |
 | 2026-08-11 | **A4 - fixed effects moved off style level; §7.1a primary/secondary corrected.** COMPLETE | The style-FE specification was unidentified. See below. |
+| 2026-08-14 | **A7 - the ~80% precision gate replaced by an attenuation gate `λ >= λ_min`.** COMPLETE | 80% was an underived convention unconnected to the target effect size. See below. |
 | 2026-08-14 | **A6 - coding guide Rule 8 sharpened; Rule 1/4 boundary clarified.** COMPLETE | `calibration_stated` was duplicating `human_label`; four boundary rows needed a binding reading. See below. |
+
+### A7 - the precision gate is replaced by an attenuation gate
+
+**No estimate of `tau` had been run at the time of this amendment, and none has been run since.**
+
+**Removed:** "hand-verified precision of each fit bucket >= ~80%". It was an underived convention,
+never connected to the effect size the study needs to detect, and a per-bucket rate is the wrong
+shape -- two dictionaries with identical precision can attenuate `tau` by very different amounts
+depending on which way their errors go.
+
+**Adopted:** `MDE_operative = MDE_design / λ`, gate `λ >= λ_min = MDE_design / MDE_target`. With
+`MDE_target = 0.30` and `MDE_design = 0.219`, **λ_min = 0.73**.
+
+**Measured result:**
+
+| subset | λ (forward) | 95% CI (cluster bootstrap) | verdict vs 0.73 |
+|---|---|---|---|
+| pooled | **0.763** | [0.621, 0.927] | point PASSES; interval straddles |
+| men | 0.741 | [0.570, 0.978] | point passes; interval straddles |
+| women | 0.784 | [0.551, 1.000] | point passes; interval straddles |
+| **adjustment-advice family excluded** | **0.886** | [0.737, 1.000] | **passes on point AND interval** |
+
+**The operative specification passes; the naive one only just does.** Under §5.3 -- adjustment-advice
+language routed to a style-level covariate rather than into `fit_score` -- λ rises to 0.886 and its
+interval lower bound clears λ_min. Keeping that family inside `fit_score` leaves λ at 0.763 with an
+interval that straddles the threshold. This is independent evidence for the §5.3 decision, arrived
+at from a different direction than the precision argument that motivated it.
+
+**Operative MDE:** 0.287 SD pooled with mega-listings excluded; **0.745 SD if they are kept.** The
+gate is unsatisfiable in the second case, since it would require λ >= 1.89.
+
+**A methodological correction inside this amendment.** The brief specified
+`s_k = Σ_j P(true=j | assigned=k)·score(j)`, `λ = (s_large − s_small)/2` -- the REVERSE conditional.
+Attenuation of a misclassified outcome is governed by the FORWARD conditional `P(assigned | true)`,
+which is what makes `MDE_design / λ` correct; using the reverse in that formula inverts the
+direction of the correction. Both are computed. The two differ by 0.014 here (0.763 vs 0.749), so
+the distinction is numerically small in this instance -- but it is recorded because it could have
+been large, and because the formula must be right for reasons that do not depend on this dataset.
 
 ### A6 - coding-guide amendments following the labelling pass
 

@@ -51,7 +51,9 @@ def load() -> list[dict]:
     key = {r["review_id_hash"]: r for r in csv.DictReader(
         key_path.open(encoding="utf-8"))}
 
-    blind_path = ROOT / "data/processed/precision_sample_blind.xlsx"
+    # Canonical labelled file. The blind workbook it was drawn from is superseded:
+    # calibration_stated was re-coded 27 -> 3 and one human_label corrected.
+    blind_path = ROOT / "data/processed/precision_sample_labelled_FINAL.xlsx"
     try:
         from openpyxl import load_workbook
     except ImportError:
@@ -156,7 +158,7 @@ def main() -> int:
         print(f"  {label:<16}{n:>5}  {n / len(rows):>6.1%}")
 
     print("\n" + "=" * 84)
-    print("DESIGN.md 4.1 GATE -- precision >= ~80% per bucket")
+    print("SUPERSEDED: the >= ~80% per-bucket gate was removed 2026-08-14")
     print("=" * 84)
     scored = score(rows)
     for bucket, s in scored.items():

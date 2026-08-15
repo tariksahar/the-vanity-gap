@@ -18,7 +18,8 @@ being loaded instead, the repository is in the wrong place — fix that before d
 | **Phase 1 (Amazon probe)** | Complete — `docs/phase1-amazon-probe.md`. Corpus is `Clothing_Shoes_and_Jewelry`; it carries the primary estimand but not purchased size. Precision measurement **pending**. |
 | **Phase 1b (size deviation)** | Complete — `docs/phase1b-size-deviation-probe.md`. Real but not primary; men's-lower cell ~330 corpus-wide. |
 | **Phase 2a (dictionary validation)** | Complete — `docs/phase2-dictionary-validation.md`. Two pattern families carry nearly all the error; **no pattern removed in response**, per the pre-commitment. |
-| **Precision (§4.1 gate)** | **Measured 2026-08-14** — `docs/phase1e-precision-measurement.md`. `true_to_size` 96.7% and `ran_large` 91.5% PASS; `ran_small` 72.5% [57.2, 83.9] **inconclusive**. 149 of 300 rows labelled, by decision. Figures are a slight upper bound — see the disclosure. |
+| **Precision** | Measured 2026-08-14 — `docs/phase1e-precision-measurement.md`. `true_to_size` 98.3%, `ran_large` 91.5%, `ran_small` 72.5%. 149 of 300 rows labelled, by decision. A slight upper bound — see the disclosure. |
+| **§4.1 gate (attenuation)** | **λ = 0.763** [0.621, 0.927] against λ_min = 0.73 — point passes, interval straddles. Under §5.3 routing **λ = 0.886** [0.737, 1.000], passes on both. Operative MDE **0.287 SD**. `docs/phase1f-attenuation.md`. |
 | **Specification** | **Corrected 2026-08-11.** Style-level FE was unidentified; fixed effects move to garment category, seller becomes a covariate. `docs/phase1d-specification-error.md`. |
 | **Analysis window** | **2019 onward (5 years)**, set empirically 2026-08-11 — `docs/phase1c-time-window.md`. The old 12–18 month default gave 12 observations in the men's-lower anchor cell. |
 | **Sampling validity** | **Files are ordered (2026-08-11).** Prefix-based rates superseded; re-measuring under `--spread`. §5.13. |
@@ -449,10 +450,45 @@ large enough — but whether the derived signal is trustworthy and the cells are
 
 | Measure | Threshold | If it fails |
 |---|---|---|
-| Hand-verified precision of each fit bucket | ≥ ~80% | Dictionary needs work, or the text route is closed |
+| **Attenuation factor `λ`** (§4.1a) | **`λ ≥ λ_min = MDE_design / MDE_target`** | The measurement cannot carry an effect of the target size |
 | Purchased size recoverable and normalisable (§5.3) | ≥ 50% of items | **Secondary analyses fall away** — see below |
 | Men's lower-body cell | not vanishing | Identification is thin — say so loudly, do not paper over it |
 | Reviews carrying a usable fit label | enough for the smallest cell, not a fixed % | Widen category, then reconsider |
+
+### 4.1a The precision gate, replaced — amended 2026-08-14
+
+**The old row read "hand-verified precision of each fit bucket ≥ ~80%". That row is removed.**
+
+80% was an underived convention. Nothing in this design implied it, it was never connected to the
+effect size the study is trying to detect, and a per-bucket rate is in any case the wrong shape: what
+matters is not how often each label is right but **how much of the true effect survives into the
+measured one**. Two dictionaries with identical per-bucket precision can attenuate `tau` by very
+different amounts, depending on *which way* their errors go.
+
+**The replacement is derived, not chosen.** Misclassification of the outcome shrinks the measured
+effect to `λ` times the true one, so an effect of size `τ` shows up as `λτ` and is detectable only
+if `λτ ≥ MDE_design`. Hence
+
+```
+MDE_operative = MDE_design / λ            gate:  λ ≥ λ_min = MDE_design / MDE_target
+```
+
+With `MDE_target = 0.30 SD` (the Phase 0 realistic band, §7.3) and `MDE_design = 0.219 SD`
+(measured, mega-listings excluded — §11 A5):
+
+```
+λ_min = 0.219 / 0.30 = 0.73
+```
+
+`λ` is defined and computed in `src/analysis/attenuation.py`; measured values and the derivation of
+which conditional it uses are in `docs/phase1f-attenuation.md`.
+
+**The gate is conditional on the §11 A5 decision, and this must not be lost.** `MDE_design = 0.219`
+presumes print-on-demand mega-listings are excluded. If they are kept, `MDE_design = 0.568` and
+`λ_min = 1.89` — **greater than 1, which no measurement can satisfy.** The λ gate is therefore
+unsatisfiable unless A5 resolves toward exclusion. That is not a coincidence to note in passing; it
+means the mega-listing decision, not the dictionary, is what determines whether this design can work
+at all.
 
 **Precision is the binding one.** An unmeasured label is not a measurement: report precision per
 bucket on a hand-labelled sample, or the probe has not answered anything.
@@ -904,6 +940,7 @@ the-vanity-gap/
     phase1c-time-window.md
     phase1d-specification-error.md
     phase1e-precision-measurement.md
+    phase1f-attenuation.md
     coding-guide.md
     phase2-dictionary-validation.md
   src/
