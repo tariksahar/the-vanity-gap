@@ -302,6 +302,29 @@ clustered at the style level (`parent_asin`).
 **`beta3` is the estimand `tau`. It is the single primary test of this pre-registration.**
 Prediction: `beta3 > 0`.
 
+### 7.1b Two estimands, named. The choice is substantive, not variance-driven.
+
+Weighting is not a variance-reduction knob -- **it changes what is being estimated.** Both are named
+here and one is chosen on substantive grounds, before any MDE is quoted for either.
+
+| name | definition | what it answers |
+|---|---|---|
+| **`tau_review`** | observation-weighted: every labelled review counts equally | the average over **purchases** |
+| `tau_style` | cluster-weighted: every style contributes equally regardless of review count | the average over **styles on offer** |
+
+**`tau_review` is PRIMARY.** The hypothesis in §1.2 is about **buyer behaviour** -- which size a
+person chooses when the garment permits escape from fit. The unit that behaviour happens in is a
+purchase, not a product listing. `tau_style` would answer a question about catalogue composition,
+which is a supply-side question this design is not built for.
+
+`tau_style` is reported as a **secondary** specification, because a large divergence between the two
+is informative: it would say the effect is concentrated in heavily-reviewed styles rather than spread
+across purchases.
+
+**Every MDE figure in this document and in the artifacts is `tau_review`.** That was the implicit
+assumption throughout, and it is now explicit and matches the substantive choice rather than having
+been selected to suit it. Switching to `tau_style` would require recomputing all of them.
+
 ### 7.1a OPERATIVE MDE — recorded as a number, 2026-08-11
 
 Computed by `src/analysis/run_window_power.py` using `src/analysis/power.py` unchanged, so it is
@@ -363,6 +386,41 @@ labelled as such.
 **There are two with-and-without control axes — cut (`DESIGN.md` §1.7) and calibration — giving four
 core specifications. All four are reported whichever way they fall.** No result is reported from a
 specification not listed here without being labelled exploratory.
+
+### 7.2a Inference: wild cluster bootstrap. Reason: COVERAGE, not the MDE.
+
+**Binding: all inference is by wild cluster bootstrap** (Cameron, Gelbach & Miller 2008) --
+Rademacher sign flips at cluster level, null imposed, p-value from the bootstrap distribution of the
+cluster-robust t. Implemented in `src/analysis/wild_bootstrap.py`.
+
+**The reason changed once it was measured, and the original reason was wrong.** This section
+previously argued that the DEFF formula understates the MDE when one cluster dominates. **It does
+not.** Measured on the actual cluster structure (`docs/phase1h-a5-measurements.md` §4.1): formula MDE
+0.2562, WCB MDE 0.260, distortion factor **1.01x**. The formula has no explicit term for cluster
+dominance but `CV^2` absorbs it -- one cluster of 2,893 among 72 small ones produces a huge CV. So
+`MDE_design = 0.568` is not discredited and the λ >= 1.89 arithmetic stands.
+
+**The real reason is size, and it is severe.** Null rejection rate at a nominal 5%, 200 trials:
+
+| scenario | dominant cluster | asymptotic CR | WCB |
+|---|---|---|---|
+| **KEEP** | 19.2% | **0.185** | **0.040** |
+| EXCLUDE | 4.8% | 0.085 | 0.065 |
+| SPLIT | 3.7% | 0.100 | 0.070 |
+
+**Under KEEP the asymptotic cluster-robust test rejects true nulls 18.5% of the time at a nominal 5%
+-- a false-positive rate 3.7x too high.** WCB returns 0.040.
+
+A test can have a correctly calibrated MDE and still be badly mis-sized: the MDE says what effect the
+design can detect, size says how often it cries wolf, and **they are independent.** Here one is fine
+and the other is not.
+
+SPLIT is worse-sized (0.100) than EXCLUDE (0.085) despite a smaller dominant cluster -- 6,462
+clusters of which most hold one observation is its own problem for the asymptotic approximation, and
+even WCB sits slightly high there (0.070). Monte Carlo SE at 200 trials is about 0.015.
+
+**WCB is therefore mandatory in every scenario, including the ones where no single cluster
+dominates.**
 
 ### 7.3 Within-person design
 
@@ -492,6 +550,28 @@ which is **not** `λ·tau` for any single λ, and no scalar correction recovers 
 direction of the resulting bias **cannot be signed in advance**: it depends on the signs and relative
 magnitudes of `Δ_men` and `Δ_women`, which are the very things being estimated. A correction applied
 without knowing them could move the estimate either way.
+
+### 9.8 `Delta_men` is not separately identified -- the §1.5 / §1.4 tension
+
+**Shipping the men's arm alone is not on the table**, and it is worth writing down why, because the
+§1.5 placebo logic makes it tempting and the temptation grows every time `tau` looks underpowered.
+
+§1.5 draws its force from the within-man comparison: the same man's waist is not a different size
+from his torso, so an upper-versus-lower gap cannot be body composition. **But it can be tailoring.**
+Upper-body garments may simply be cut more generously for everyone, and that common shift makes
+`Delta_men` differ from zero with no vanity involved. **Removing precisely that common shift is why
+`tau` exists** -- the outer difference against women subtracts whatever is common to upper-versus-
+lower across both genders.
+
+So `Delta_men` is a **diagnostic**, not a publishable result. Its DEFF and MDE are measured because
+they say which arm binds the design; they license no men's-only paper.
+
+**Within men, the object is the three-category gradient rather than the two-level difference.** A
+common cut shift need not be monotone in the predicted order tee > shirt > jeans, so the ordering
+carries information the pooled difference discards. That makes it a better diagnostic; it does not
+make it identified.
+
+§1.4 names `tau` as the estimand, unchanged.
 
 ### 9.7a The residual `δ` is a term in `tau`, not a diagnostic
 
@@ -662,6 +742,175 @@ looseness was intended.** A deliberate size-up producing a loose garment is `ran
 **An uncovered contamination type** is recorded but not fixed: an adult women's product reviewed for
 a 7-year-old wearer. §1.3 excludes children's products, not child wearers of adult products. One
 occurrence in 149 rows does not justify a rule.
+
+### A4 - the fixed-effects level, and the §7.1a correction
+
+**No estimate of `tau` had been run at the time of this amendment, and none has been run since.**
+
+**What was wrong.** §7.1 and `DESIGN.md` §1.4 specified style-level fixed effects. That
+specification **cannot estimate its own estimand**: gender and body half do not vary within a style,
+so `male`, `upper` and `male x upper` are perfectly collinear with the style dummies and none of the
+three coefficients is identified. Confirmed on the drawn sample -- 170 styles, **zero** spanning more
+than one gender x body-half cell. Full detail: `docs/phase1d-specification-error.md`.
+
+**Seller FE was proposed and measured, and it does not work.** Of 2,014 sellers carrying 16,027
+labelled observations, 67.50% span a single cell and are absorbed entirely. Only **30 sellers**
+(15.74% of observations) span three or more cells, which is what identification of the interaction
+requires. The anchor cell retains 37.3%. Resting the estimand on thirty sellers is not a primary
+specification, and it is reported as unviable rather than adopted because it was the proposal.
+
+**Adopted instead:**
+
+| element | before | after |
+|---|---|---|
+| fixed effects | style (`parent_asin`) | **garment category** |
+| seller | absent | **covariate** |
+| standard errors | clustered on style | **unchanged** -- clustered on style |
+| calibration covariate | style-level | **unchanged** |
+
+Within a garment category `upper` is constant but `male` varies, so `beta3` is identified as the
+difference in the male coefficient between upper-body and lower-body categories. This uses every
+observation instead of 15.74% of them.
+
+**Cost, stated rather than glossed:** seller FE would have absorbed the §9.1 calibration confound
+directly. A seller covariate does not. **§9.1 therefore stays OPEN** and is not closed as a
+by-product.
+
+**Retained as robustness:** seller FE on the 30-seller subsample. Low-powered, but a within-seller
+replication differences calibration out entirely, so it is a strong test despite its size. Published
+whatever it shows.
+
+**The §7.1a correction.** That section reported the MDE of the WIDE upper/lower sample against a
+claim about the PRIMARY gradient specification. Measured cells at 3,000,000 reviews:
+
+| sample | men/up | men/low | wom/up | wom/low | smallest |
+|---|---|---|---|---|---|
+| wide (secondary) | 2,385 | 2,005 | 8,465 | 3,174 | 2,005 |
+| gradient (primary) | 1,433 | 1,644 | 5,895 | 1,548 | 1,433 |
+
+The gradient is thinner but modestly -- 66% of the wide sample. **The primary specification is NOT
+re-ranked**, and no amendment to which test is confirmatory is proposed or needed.
+
+### A5 - `parent_asin` is not reliably a style. PROVISIONAL DEFAULT: KEEP.
+
+**STATUS: OPEN. Provisional default KEEP. Resolution depends on measurements 0, 1 and 4 below. No
+estimate of `tau` has been run, before or since.**
+
+`m_bar` and CV were assumed from Phase 0's Mavi figures. Measured on Amazon:
+
+| | m_bar | CV | DEFF (ICC 0.05) | MDE (wide) |
+|---|---|---|---|---|
+| Phase 0 assumption | 20.00 | 1.00 | 2.95 | 0.177 |
+| **measured, all styles** | **4.571** | **11.31** | **30.40** | **0.568** |
+| measured, excluding heaviest listing | 3.740 | 4.26 | 4.54 | 0.219 |
+
+Cause: **2,916 labelled observations, 18.2% of the sample, sit in one `parent_asin`** -- a
+print-on-demand listing whose single parent covers a catalogue of designs. Median across styles is 1.
+`DESIGN.md` §1.6 treats `parent_asin` as a style; for these sellers it is a product line. Structural
+evidence: `docs/phase1g-style-definition.md`.
+
+#### Why deferring this does not damage the pre-registration
+
+Stated as a general test rather than an excuse for this instance:
+
+> **A decision may be deferred pending measurement if and only if the pending measurement is not a
+> function of the outcome.**
+
+Whether a listing prints many designs onto one blank garment carries **zero information about
+`tau`**. So does the survival rate of its reviews under a filter, and so does a cluster-size
+distribution. None of the three pending measurements can indicate which way the estimate will come
+out. What damages a pre-registration is deciding **after seeing the result**; measuring **structure**
+and deciding on that is what a pre-registration is for.
+
+By contrast, "exclude them and see whether the MDE improves" **would** be illegitimate -- and that is
+how this question was framed until 2026-08-14, which is why the framing was replaced.
+
+#### The three pending measurements
+
+**0 -- do the filters already in force dissolve the problem?** The §5.8 window, the
+`verified_purchase` decision and the §1.3 mapping are already in the design. If the failing listings
+lose most of their observations to filters we already apply, there is nothing to decide. Cheapest
+question, asked first.
+
+**1 -- is a mega-listing ONE calibration unit?** Parent-level clustering assumes so, and that
+assumption was previously asserted as though it were evidence. It was not measured; that was an
+error. Three sub-questions, one answerable:
+
+- *single store?* Trivially yes by construction -- `store` is a field on the parent's metadata row.
+  Only checked for asins appearing under two parents.
+- *one size grid?* **NOT MEASURABLE.** Reviews carry `asin`, `parent_asin`, `rating`, `text`,
+  `title`, `timestamp`, `user_id`, `verified_purchase` and nothing else -- no size field -- and
+  metadata is parent-level.
+- *homogeneous fit across asins?* **Measurable, and the real test.**
+
+**4 -- separate DEFF and MDE for `Delta_men`, `Delta_women` and `tau`** under each scenario. What may
+and may not be concluded from it: §9.8.
+
+#### REFUTATION CONDITION, recorded in advance
+
+**If measurement 1 shows the mega-listing is not a single calibration unit** -- heterogeneous fit
+distributions across its asins -- **then parent-level clustering was wrong from the start, 0.568 is
+an artefact of the wrong clustering, and the decision turns toward SPLIT.**
+
+Written before the measurement so a heterogeneous result cannot later be reread as supporting
+whatever is convenient.
+
+#### The objection to excluding is NOT "differential filtering"
+
+An earlier version objected on the ground that exclusion's incidence across cells is asymmetric.
+**That argument was weak and is withdrawn.** A rule defined on product structure and applied
+everywhere may have asymmetric incidence; that alone is not bias.
+
+The correct objections are two, and stronger:
+
+1. **A slogan t-shirt is a t-shirt.** Its buyer made exactly the size choice under study. Excluding
+   it discards an **in-target behavioural observation** because of an **off-target accounting
+   property** of how a seller organised their catalogue.
+2. **It shifts the population from "garments purchased" to "styles"**, and because the shift is
+   unequal across the four cells, the cells begin describing different populations.
+
+#### MEASUREMENT RESULTS, 2026-08-15 -- `docs/phase1h-a5-measurements.md`
+
+**0 -- the filters do not dissolve the problem; they concentrate it.** `verified_purchase` is 98.4%
+on the mega-listing and the window does not bite on recent listings, so survival is 95.3%. The
+failing listings' share of the analysis sample **rises from 18.61% to 23.23%** once the filters are
+applied, because they remove proportionally more from conventional listings, whose reviews are older.
+"The filters handle it" is off the table.
+
+**1 -- UNTESTABLE. A third outcome, not pre-specified.** Of 12,725 asins under `B07TVHSDMQ`, 2,765
+carry at least one labelled review and **2 carry five or more**; the other two failing listings have
+none. Fit homogeneity across designs cannot be computed. The **pre-registered refutation condition is
+therefore neither triggered nor cleared**, and is reported that way rather than pressed into either
+branch.
+
+**And untestability does NOT favour SPLIT.** KEEP assumes errors are perfectly correlated across the
+12,725 designs -- the *most conservative* assumption. SPLIT assumes they are uncorrelated, and with
+about one observation per asin those rows become effectively independent -- the *least* conservative.
+The MDE ordering (SPLIT 0.132 < EXCLUDE 0.156 < KEEP 0.412) is a mechanical restatement of how much
+correlation each option assumes away, **not evidence about which is right.**
+
+**4 -- the men's arm binds.**
+
+| scenario | DEFF | MDE `tau` | MDE `Δ_men` | MDE `Δ_women` |
+|---|---|---|---|---|
+| KEEP | 31.64 | **0.412** | 0.341 | 0.232 |
+| EXCLUDE | 3.95 | 0.156 | 0.120 | 0.099 |
+| SPLIT | 3.27 | 0.132 | 0.110 | 0.074 |
+
+All are the gradient trend per step. **0.412 and the earlier 0.568 are different objects** -- gradient
+trend against the wide 2x2 contrast -- and neither supersedes the other. KEEP alone falls outside the
+locked 0.30 target.
+
+**What this does to the decision.** The strongest practical objection to KEEP was never its MDE, which
+is honest at 0.412; it was that the standard errors would have been wrong by a factor of nearly four.
+§7.2a settles that with WCB. KEEP is now the option that assumes least *and* reports honestly.
+
+#### The three positions
+
+1. **Keep** -- take the data as it is. Provisional default.
+2. **Exclude** -- and state the population change explicitly.
+3. **Split** -- cluster on `asin` for listings failing the structural test. Discards nothing and does
+   not pretend one listing is one style. Did not exist before the measurement.
 
 ### A4 - the fixed-effects level, and the §7.1a correction
 

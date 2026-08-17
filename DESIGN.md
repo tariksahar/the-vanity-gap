@@ -20,7 +20,8 @@ being loaded instead, the repository is in the wrong place — fix that before d
 | **Phase 2a (dictionary validation)** | Complete — `docs/phase2-dictionary-validation.md`. Two pattern families carry nearly all the error; **no pattern removed in response**, per the pre-commitment. |
 | **Precision** | Measured 2026-08-14 — `docs/phase1e-precision-measurement.md`. `true_to_size` 98.3%, `ran_large` 91.5%, `ran_small` 72.5%. 149 of 300 rows labelled, by decision. A slight upper bound — see the disclosure. |
 | **§4.1 gate (attenuation)** | **NOT PASSED — and not failed.** Store-level: λ = 0.741 [0.590, 0.920] as-is, **0.878 [0.723, 1.000]** under §5.3 routing, against λ_min = 0.73. In every specification the point estimate is above the threshold and the interval spans it. That is a statement about 149 hand labels. Operative MDE **0.249 SD** (§5.3, mega-listings excluded). `docs/phase1f-attenuation.md`. |
-| **Style definition (A5)** | Structural question **answered** 2026-08-14 — `docs/phase1g-style-definition.md`. Catalogue listings (12,004 asins vs median 17) are not styles. Decision open, and it is about **population**, not power: they are 41.8% of women/upper and 0% of women/lower. |
+| **Inference** | **Wild cluster bootstrap, mandatory.** Asymptotic cluster-robust tests reject true nulls at **18.5%** against a nominal 5% under the measured cluster structure. The MDE formula, by contrast, is calibrated (1.01x). `PREREGISTRATION.md` §7.2a. |
+| **Style definition (A5)** | **OPEN, provisional default KEEP.** Structural question answered — catalogue listings (12,725 asins vs median 17) are not styles. Three measurements in: filters *concentrate* the problem (18.6%→23.2%); homogeneity is **untestable**, which makes SPLIT the aggressive option not the neutral one; men's arm binds. `docs/phase1h-a5-measurements.md`. |
 | **Specification** | **Corrected 2026-08-11.** Style-level FE was unidentified; fixed effects move to garment category, seller becomes a covariate. `docs/phase1d-specification-error.md`. |
 | **Analysis window** | **2019 onward (5 years)**, set empirically 2026-08-11 — `docs/phase1c-time-window.md`. The old 12–18 month default gave 12 observations in the men's-lower anchor cell. |
 | **Sampling validity** | **Files are ordered (2026-08-11).** Prefix-based rates superseded; re-measuring under `--spread`. §5.13. |
@@ -755,6 +756,13 @@ style fixed effects absorb much of it; `verified_purchase` filters some noise �
 require it in the pre-registration, not afterwards. Heterogeneity adds variance as well as
 observations: pooled n does not translate one-for-one into precision.
 
+**Retracted 2026-08-15: "a wider corpus improves DEFF by itself".** That was asserted in
+conversation and never measured. A wider corpus plausibly brings *more* print-on-demand catalogue
+listings and more of the heterogeneity described below, so the sign is not obvious. It is a
+**hypothesis to be measured** — cell counts, share of structurally-failing listings, DEFF and MDE —
+and worth measuring independently of the §11 A5 decision. Recorded here so the claim is not carried
+forward as established.
+
 **Seller calibration — measured 2026-08-11, and it is directional, not generic.**
 Amazon is a marketplace and many apparel sellers use non-US sizing that runs small, so
 "order two sizes up" is partly a **review genre** rather than a preference. Measured across 20M
@@ -943,6 +951,7 @@ the-vanity-gap/
     phase1e-precision-measurement.md
     phase1f-attenuation.md
     phase1g-style-definition.md
+    phase1h-a5-measurements.md
     coding-guide.md
     phase2-dictionary-validation.md
   src/
