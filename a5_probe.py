@@ -45,6 +45,7 @@ from __future__ import annotations
 import argparse
 import collections
 import pathlib
+import random
 import math
 import statistics
 import sys
@@ -175,6 +176,64 @@ def cluster_params(sizes: list[int]) -> tuple[float, float]:
     return (mean, sd / mean)
 
 
+def homogeneity_test(fits: list, replicates: int = 999, seed: int = 20260815):
+    """Are these asins draws from ONE bucket distribution?
+
+    A min/max range is NOT a test. With five reviews per asin the observed
+    `ran_small` share can only take the values 0, .2, .4, .6, .8, 1, so under
+    perfect homogeneity at p = 0.5 a range of 1.00 across sixty asins occurs
+    about 70% of the time. An earlier version of this probe called that
+    "HETEROGENEOUS", which was meaningless.
+
+    The statistic is the multinomial Pearson X2 against the pooled distribution.
+    Expected counts are far too small for the chi-square approximation, so the
+    p-value comes from a parametric bootstrap: resample each asin from the pooled
+    distribution at its own n and recompute.
+
+    Returns (X2, X2/df, p-value).
+    """
+    buckets = list(FIT_DICTIONARY)
+    sizes = [sum(f.values()) for f in fits]
+    total = sum(sizes)
+    if total == 0 or len(fits) < 2:
+        return (0.0, 0.0, 1.0)
+    pooled = [sum(f[b] for f in fits) / total for b in buckets]
+
+    def statistic(observed):
+        value = 0.0
+        for counts, size in zip(observed, sizes):
+            for index, share in enumerate(pooled):
+                expected = size * share
+                if expected > 0:
+                    value += (counts[index] - expected) ** 2 / expected
+        return value
+
+    observed = [[f[b] for b in buckets] for f in fits]
+    x2 = statistic(observed)
+    df = (len(fits) - 1) * (len(buckets) - 1)
+
+    rng = random.Random(seed)
+    hits = 0
+    for _ in range(replicates):
+        simulated = []
+        for size in sizes:
+            counts = [0] * len(buckets)
+            for _ in range(size):
+                draw = rng.random()
+                cumulative = 0.0
+                for index, share in enumerate(pooled):
+                    cumulative += share
+                    if draw <= cumulative:
+                        counts[index] += 1
+                        break
+                else:
+                    counts[-1] += 1
+            simulated.append(counts)
+        if statistic(simulated) >= x2:
+            hits += 1
+    return (x2, x2 / df if df else 0.0, (hits + 1) / (replicates + 1))
+
+
 def failing_parents(res: dict, threshold: int) -> set[str]:
     return {p for p, a in res["asins"].items() if len(a) > threshold}
 
@@ -237,16 +296,17 @@ def report_measurement_1(res: dict, threshold: int, min_reviews: int) -> None:
             print("    homogeneity is unmeasurable -- and a cluster whose members")
             print("    cannot be compared is an assumption, not a finding.")
             continue
-        shares = []
-        for _a, fit in rich:
-            total = sum(fit.values())
-            shares.append(fit["ran_small"] / total)
-        print(f"    ran_small share across those asins: "
-              f"min {min(shares):.2f} median {statistics.median(shares):.2f} "
-              f"max {max(shares):.2f}")
-        if len(shares) > 1:
-            print(f"    spread {max(shares) - min(shares):.2f} -- "
-                  f"{'HETEROGENEOUS' if max(shares) - min(shares) > 0.3 else 'consistent'}")
+        chi2, dispersion, pvalue = homogeneity_test([fit for _a, fit in rich])
+        shares = [fit["ran_small"] / sum(fit.values()) for _a, fit in rich]
+        print(f"    ran_small share: min {min(shares):.2f} "
+              f"median {statistics.median(shares):.2f} max {max(shares):.2f}"
+              f"   (RANGE IS NOT A TEST -- see below)")
+        print(f"    multinomial dispersion X2/df = {dispersion:.2f}   "
+              f"bootstrap p = {pvalue:.3f}   asins compared = {len(rich)}")
+        if pvalue < 0.05:
+            print("    => HETEROGENEOUS beyond sampling noise")
+        else:
+            print("    => not distinguishable from a single calibration unit")
 
 
 def _mde_for(cells: dict, m_bar: float, cv: float, icc: float = 0.05) -> float:
@@ -371,7 +431,10 @@ def main() -> int:
         pathlib.Path(args.dump_clusters).write_text(json.dumps(
             {"KEEP": keep, "EXCLUDE": exclude, "SPLIT": split,
              "gradient_cells": grad, "cell_bucket": cellshare,
-             "failing": sorted(failing)}), encoding="utf-8")
+             "failing": sorted(failing),
+             "asin_fit": {f"{p}|{a}": dict(res["asin_fit"][(p, a)])
+                          for (p, a) in res["asin_fit"] if p in failing}}),
+            encoding="utf-8")
         print(f"\ncluster-size distributions written to {args.dump_clusters}")
 
     rule("END")

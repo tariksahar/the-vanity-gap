@@ -25,7 +25,8 @@ being loaded instead, the repository is in the wrong place — fix that before d
 | **Specification** | **Corrected 2026-08-11.** Style-level FE was unidentified; fixed effects move to garment category, seller becomes a covariate. `docs/phase1d-specification-error.md`. |
 | **Analysis window** | **2019 onward (5 years)**, set empirically 2026-08-11 — `docs/phase1c-time-window.md`. The old 12–18 month default gave 12 observations in the men's-lower anchor cell. |
 | **Sampling validity** | **Files are ordered (2026-08-11).** Prefix-based rates superseded; re-measuring under `--spread`. §5.13. |
-| **Current task** | **Scale test on `Clothing_Shoes_and_Jewelry`** — 15M reviews against a 1.5M-item index. Under KEEP the gate needs λ ≥ 1.37, which is impossible, so the question is whether depth fixes it. The escalation to CSJ already happened on 2026-08-08; there is no wider corpus pending. `docs/phase1h-a5-measurements.md` §8. |
+| **Scale** | **Depth fixes the gate.** At 15M reviews / 1.5M items, MDE under KEEP falls 0.412 → **0.185**, so λ_min = 0.617 against a measured λ of 0.878 [0.723, 1.000] — attainable on point *and* interval, under the assumption-minimal option. DEFF got *worse* (31.6 → 67.6); depth won through n regardless. `docs/phase1h-a5-measurements.md` §9. |
+| **Current task** | Re-measuring the asin homogeneity test — the first scale run used an invalid min/max criterion. Then A5 closes. |
 | **Schema** | Not written. Phase 1 settled the fields; write it with the Phase 2 adapters. |
 
 ---

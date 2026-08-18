@@ -254,7 +254,12 @@ no information about `tau`.
 
 ## 7. The consequence, stated plainly
 
-**Under KEEP this corpus cannot pass the §4.1 gate, and no amount of dictionary work changes that.**
+> **SUPERSEDED BY §9. The conclusion below was explicitly conditioned on "at this sample scale",
+> and that condition has since been discharged: at 15,000,000 reviews the gate IS attainable under
+> KEEP. The section is kept as written because the qualifier was load-bearing and the reasoning
+> stands for the scale it describes.**
+
+**At the 3,000,000-review scale, under KEEP, this corpus cannot pass the §4.1 gate.**
 
 ```
 λ_min = MDE_design / MDE_target = 0.412 / 0.30 = 1.373
@@ -351,3 +356,91 @@ since the population is the same one sampled more deeply — but the mega-listin
 things being measured, and if it moves materially the labelled sample's composition moves with it.
 **Recorded as a transfer condition on §5.3 and A7, with its cost stated in advance rather than
 discovered when the numbers arrive.**
+
+
+---
+
+## 9. Scale changes the answer — the gate is attainable under KEEP
+
+15,000,000 reviews against a 1,500,000-item index, same window, same criterion.
+
+### 9.1 The headline
+
+| scenario | clusters | m_bar | CV | DEFF | **MDE `tau`** | 3M figure |
+|---|---|---|---|---|---|---|
+| **KEEP** | 29,420 | 5.668 | 15.30 | **67.60** | **0.185** | 0.412 |
+| EXCLUDE | 29,414 | 4.996 | 4.04 | 5.28 | 0.055 | 0.156 |
+| SPLIT | 46,865 | 3.558 | 4.53 | 4.78 | 0.049 | 0.132 |
+
+Gradient cells: men 8,946 / 8,269 / 12,997, women 39,509 / 11,889 / 20,626.
+
+```
+λ_min under KEEP  =  0.185 / 0.30  =  0.617
+measured λ        =  0.878  [0.723, 1.000]     (§5.3 routing, store clustering)
+```
+
+**0.617 is below the measured λ on both the point estimate and the interval's lower bound. The gate
+is attainable under KEEP — the assumption-minimal option — without excluding anything and without
+asserting independence across designs.**
+
+That reverses §7, whose qualifier "at this sample scale" was the load-bearing part.
+
+### 9.2 DEFF got worse and the MDE improved anyway
+
+Worth spelling out because the two move in opposite directions:
+
+- **DEFF more than doubled**, 31.64 → 67.60, driven by CV 11.21 → 15.30 and `m_bar` 4.845 → 5.668.
+- **Cells grew about 11×** (men's tee 786 → 8,946).
+- MDE scales as `sqrt(DEFF / n)`, so the penalty is `sqrt(67.60/31.64) = 1.46` against a gain of
+  `sqrt(11.4) = 3.38`. Net **2.31×**, and the observed improvement is **2.23×**. The arithmetic
+  checks out.
+
+So the retracted claim — "a wider corpus improves DEFF by itself" — is confirmed **false**: DEFF got
+materially worse. Depth helped through sample size in spite of the design effect, not through it.
+
+### 9.3 The concentration was partly an artefact of the small metadata index
+
+| | 3M / 400k | 15M / 1.5M |
+|---|---|---|
+| labelled observations | 15,072 | 166,766 |
+| clusters | 3,111 | 29,420 |
+| largest cluster | 2,893 | 14,230 |
+| **its share** | **19.2%** | **8.5%** |
+| **structurally-failing share** | **23.2%** | **11.9%** |
+
+**The mega-listing's share halved.** It grew 4.9× while the sample grew 11.1×, because a 1,500,000-
+item index admits many conventional parents that a 400,000-item index never reached. A good part of
+what looked like an intrinsic property of the corpus was a property of how thinly it had been
+indexed.
+
+This does **not** dissolve the A5 question — 11.9% is still a large share and the largest single
+cluster is still 8.5% — but it materially changes its size, and it was not predicted.
+
+### 9.4 Does A9 fire? Probably not, and here is the check
+
+`PREREGISTRATION.md` §11 A9 requires a fresh hand-labelling round when the analysis population's
+**composition** changes materially, not merely its `n`.
+
+The labelled sample was drawn from a 600,000-review / 250,000-item join. Its own mega-listing share
+is **10.1%** (15 of 149 rows). Against the analysis populations:
+
+| population | failing-listing share | gap to the labelled sample |
+|---|---|---|
+| 3M / 400k | 23.2% | 13.1 points |
+| **15M / 1.5M** | **11.9%** | **1.8 points** |
+
+**The labelled sample resembles the scaled population more closely than the intermediate one.** That
+is an accident of how it was drawn, not a design feature, but it is checkable and it points the
+right way: scaling up moved the analysis population *toward* the sample λ was measured on, not away.
+
+**Reading: A9 is not triggered by the scale-up on this evidence.** It would have been triggered by
+quoting λ for the 3M population, where the gap is 13 points. That is worth noting, since the 3M
+figures were the ones in circulation.
+
+### 9.5 What is still not established
+
+- These are 15M of 66M reviews (23%) and 1.5M of 7.2M items (21%). **Still not the full corpus.**
+- DEFF is rising with scale. Whether it keeps rising, and how fast, is not known — the two runs give
+  a slope of one segment, which is not a trend.
+- The homogeneity test that would settle §5.2 was **invalid in the first scale run** and is being
+  re-measured; see §10.
