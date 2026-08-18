@@ -400,27 +400,32 @@ not.** Measured on the actual cluster structure (`docs/phase1h-a5-measurements.m
 dominance but `CV^2` absorbs it -- one cluster of 2,893 among 72 small ones produces a huge CV. So
 `MDE_design = 0.568` is not discredited and the λ >= 1.89 arithmetic stands.
 
-**The real reason is size, and it is severe.** Null rejection rate at a nominal 5%, 200 trials:
+**The real reason is size.** Null rejection rate at nominal 5%, asymptotic test at 2,000 trials
+(it needs no bootstrap, so it is cheap), WCB at 300 x 99. Wilson intervals at 95%:
 
-| scenario | dominant cluster | asymptotic CR | WCB |
-|---|---|---|---|
-| **KEEP** | 19.2% | **0.185** | **0.040** |
-| EXCLUDE | 4.8% | 0.085 | 0.065 |
-| SPLIT | 3.7% | 0.100 | 0.070 |
+| scenario | dominant cluster | asymptotic CR | ratio | WCB |
+|---|---|---|---|---|
+| **KEEP** | 19.2% | **0.207** [0.190, 0.226] | **4.1x** | 0.047 [0.028, 0.077] |
+| EXCLUDE | 4.8% | **0.079** [0.068, 0.092] | **1.6x** | 0.050 [0.031, 0.081] |
+| SPLIT | 3.7% | **0.064** [0.054, 0.075] | **1.3x** | 0.037 [0.021, 0.064] |
 
-**Under KEEP the asymptotic cluster-robust test rejects true nulls 18.5% of the time at a nominal 5%
--- a false-positive rate 3.7x too high.** WCB returns 0.040.
+**Under KEEP the asymptotic test rejects true nulls at 20.7% against a nominal 5%.** WCB returns
+0.047 and is correctly sized everywhere.
 
 A test can have a correctly calibrated MDE and still be badly mis-sized: the MDE says what effect the
 design can detect, size says how often it cries wolf, and **they are independent.** Here one is fine
 and the other is not.
 
-SPLIT is worse-sized (0.100) than EXCLUDE (0.085) despite a smaller dominant cluster -- 6,462
-clusters of which most hold one observation is its own problem for the asymptotic approximation, and
-even WCB sits slightly high there (0.070). Monte Carlo SE at 200 trials is about 0.015.
+**THE RULE IS UNCONDITIONAL, and a dominance trigger was considered and rejected on evidence.** The
+natural rule -- "use WCB when one cluster exceeds 10% of a cell" -- would pass EXCLUDE (4.8%) and
+SPLIT (3.7%) through as safe. **All three intervals exclude nominal.** Even SPLIT is mis-sized at
+1.3x. So there is no dominance threshold below which the asymptotic test is trustworthy in this
+data, and **wild cluster bootstrap applies to every estimate in this project.**
 
-**WCB is therefore mandatory in every scenario, including the ones where no single cluster
-dominates.**
+An earlier 200-trial run reported 0.185 / 0.085 / 0.100. All three sit inside the new intervals, so
+nothing was wrong, but at that sample size neither EXCLUDE nor SPLIT could be distinguished from
+nominal and SPLIT appeared worse than EXCLUDE when it is better. **The sharper run changed a
+conclusion, not a decimal** -- which is why the trial count is recorded alongside every rate.
 
 ### 7.3 Within-person design
 

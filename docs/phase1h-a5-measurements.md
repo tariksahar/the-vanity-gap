@@ -18,7 +18,7 @@ Three measurements were pending on A5. All three are in, and two invert the expe
 | **1** mega-listing is one calibration unit | testable | **untestable**, and that is a third outcome |
 | **4** DEFF/MDE per object | — | men's arm binds; KEEP 0.412, not 0.568 |
 | WCB fixes an understated MDE | expected | **formula was already calibrated**, 1.01× |
-| WCB needed for inference | secondary | **primary — asymptotic test overrejects 3.7×** |
+| WCB needed for inference | secondary | **primary — asymptotic test overrejects 4.1×, and every scenario is mis-sized** |
 
 ---
 
@@ -167,38 +167,48 @@ So `MDE_design = 0.568` and the gradient's 0.412 are **not** discredited, and th
 λ ≥ 1.89 stands as arithmetic. The brief's methodological worry was legitimate; it does not bite
 empirically in this configuration.
 
-### 4.2 Is asymptotic inference valid? No — and this is severe.
+### 4.2 Is asymptotic inference valid? No — in every scenario.
 
-Null rejection rate at a nominal 5%, same measured structures, 200 trials each:
+Null rejection rate at a nominal 5%. **The asymptotic test needs no bootstrap, so it is run at
+2,000 trials while WCB gets 300 × 99** — the headline number therefore carries a tight interval.
+Wilson intervals at 95%:
 
-| scenario | dominant cluster | **asymptotic CR** | **WCB** |
-|---|---|---|---|
-| **KEEP** | 19.2% | **0.185** | **0.040** |
-| EXCLUDE | 4.8% | 0.085 | 0.065 |
-| SPLIT | 3.7% | 0.100 | 0.070 |
+| scenario | dominant cluster | **asymptotic CR** | ratio to nominal | **WCB** |
+|---|---|---|---|---|
+| **KEEP** | 19.2% | **0.207** [0.190, 0.226] | **4.1× [3.8×, 4.5×]** | 0.047 [0.028, 0.077] |
+| EXCLUDE | 4.8% | **0.079** [0.068, 0.092] | **1.6× [1.4×, 1.8×]** | 0.050 [0.031, 0.081] |
+| SPLIT | 3.7% | **0.064** [0.054, 0.075] | **1.3× [1.1×, 1.5×]** | 0.037 [0.021, 0.064] |
 
-**Under KEEP the asymptotic cluster-robust t-test rejects true nulls 18.5% of the time at a nominal
-5% — a false-positive rate 3.7× too high.** WCB returns 0.040, correct.
+**Under KEEP the asymptotic cluster-robust t rejects true nulls 20.7% of the time at a nominal 5% —
+four times too often, with the interval nowhere near nominal.** WCB returns 0.047.
 
-This is the claim that survives, and it is a **coverage** failure, not an MDE failure. A test can
-have a correctly-calibrated MDE and still be badly mis-sized, because the MDE describes what effect
-the design can detect while size describes how often it cries wolf. **They are independent, and here
-one is fine and the other is not.**
+This is a **coverage** failure, not an MDE failure. A test can have a correctly calibrated MDE and
+still be badly mis-sized: the MDE says what effect the design can detect, size says how often it
+cries wolf, and **they are independent.** Here one is fine and the other is not.
 
-Note also that SPLIT (0.100) is worse-sized than EXCLUDE (0.085) despite a smaller dominant cluster:
-6,462 clusters of which most hold a single observation is its own problem for the asymptotic
-approximation. Even WCB sits slightly high there (0.070). Monte Carlo SE at 200 trials is about
-0.015, so 0.085 is marginal while 0.185 is not.
+#### 4.2.1 The sharper run changed a conclusion, not just a decimal
 
-**Consequence: wild cluster bootstrap is mandatory for inference, in every scenario, and the reason
-is coverage.** Recorded in `PREREGISTRATION.md` §7.2a with that rationale rather than the MDE one
-originally proposed.
+An earlier 200-trial run gave 0.185 / 0.085 / 0.100. All three point estimates sit inside the new
+intervals, so nothing was wrong — but at 200 trials **neither EXCLUDE nor SPLIT could be
+distinguished from nominal**, and SPLIT's 0.100 looked worse than EXCLUDE's 0.085 when in fact it is
+better (0.064 against 0.079).
+
+At 2,000 trials **all three intervals exclude 0.050.** Even SPLIT, whose largest cluster is 3.7% of
+observations, is mis-sized at 1.3× with a lower bound of 0.054.
+
+**That kills the natural rule.** A trigger of the form "use WCB when a single cluster exceeds 10% of
+a cell" would have passed EXCLUDE and SPLIT through as safe, and both are demonstrably mis-sized. The
+supported rule is therefore **unconditional**, and it is supported by measurement rather than by
+caution.
+
+**Consequence: wild cluster bootstrap is mandatory for all inference in this project, with no
+dominance threshold.** Recorded in `PREREGISTRATION.md` §7.2a.
 
 ### 4.3 What this does to the A5 decision
 
 It removes the strongest practical objection to KEEP. The real risk of keeping the mega-listings was
 never the MDE — 0.412 is an honest number — it was that we would have reported standard errors that
-were wrong by a factor of nearly four. **With WCB that risk is handled**, and KEEP becomes the option
+were wrong by a factor of four. **With WCB that risk is handled**, and KEEP becomes the option
 that assumes least and now also reports honestly.
 
 ---
