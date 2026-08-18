@@ -444,3 +444,91 @@ figures were the ones in circulation.
   a slope of one segment, which is not a trend.
 - The homogeneity test that would settle §5.2 was **invalid in the first scale run** and is being
   re-measured; see §10.
+
+
+---
+
+## 10. The refutation condition fired — and its stated consequence does not follow
+
+This section is the awkward one and it is written before the convenient reading suggests itself.
+
+### 10.1 The result, on a valid test
+
+Multinomial dispersion with a parametric bootstrap p-value, at 15,000,000 reviews:
+
+| listing | asins compared | X²/df | bootstrap p | verdict |
+|---|---|---|---|---|
+| **`B07TVHSDMQ`** | **60** | **2.09** | **0.001** | **heterogeneous beyond sampling noise** |
+| `B07T7RFKSR` | 5 | 1.51 | 0.237 | not distinguishable |
+| `B07XFXXZMV` | 3 | 1.19 | 0.546 | not distinguishable |
+| `B08R8W8GP9` | 3 | 0.44 | 0.958 | not distinguishable |
+
+Only the first has enough asins to test anything; three and five asins carry essentially no power, so
+their non-rejections are uninformative rather than supportive.
+
+**On the one listing that can be tested, the designs under it are not draws from one fit
+distribution.** `PREREGISTRATION.md` §11 A5 recorded in advance that this is what would fire the
+refutation condition. **It fired.**
+
+### 10.2 But the consequence I pre-registered does not follow, and the reason is the error already corrected in §2.2
+
+The refuter read: *"parent-level clustering was wrong from the start, the 0.568 figure is an artefact
+of the wrong clustering, and the decision turns toward SPLIT."*
+
+**That inference is invalid.** A cluster-robust variance estimator permits an **arbitrary
+within-cluster covariance structure**. Heterogeneity among the asins inside a parent is precisely the
+kind of thing it is built to absorb; it assumes nothing about within-cluster homogeneity, so
+observing within-cluster heterogeneity cannot contradict it.
+
+What *would* invalidate parent-level clustering is correlation **across parents** — a violation of
+between-cluster independence. This test measures nothing about that.
+
+**The refuter inherited the error the brief corrected on 2026-08-15**: it was written while this
+document still described KEEP as "assuming perfect correlation within the catalogue". Under that
+mistaken reading, evidence of internal heterogeneity would indeed have contradicted the assumption.
+Under the correct reading there is no assumption to contradict.
+
+### 10.3 This must not become a convenient escape
+
+A pre-registered condition fired and is being declared non-binding. That is exactly the move a
+refutation condition exists to prevent, so the reasoning has to stand on its own and be checkable:
+
+- **The claim:** cluster-robust inference at level `g` requires independence *between* level-`g`
+  units and imposes no restriction *within* them.
+- **The consequence:** within-parent heterogeneity is orthogonal to the validity of parent-level
+  clustering. It is evidence about the product, not about the estimator.
+- **What follows instead:** if asins genuinely differ, they are not interchangeable — which is a
+  reason to be *more* wary of treating them as independent units, not less. **The evidence points
+  away from SPLIT, not toward it.**
+
+If that reasoning is wrong, the refuter binds and the decision turns to SPLIT. It is stated this
+plainly so it can be checked rather than taken on trust.
+
+### 10.4 What the result DOES establish, and what should have been the refuter
+
+**Established:** the mega-listing is internally heterogeneous. That **strengthens** the §5.1 finding
+that it is not a style — it is not merely many asins, it is many asins that behave differently.
+Nothing in §5.1 depended on this, but it is now independently corroborated.
+
+**Not established, and untouched:** how errors are correlated. §5.2 remains open.
+
+**A correctly specified refuter would have targeted the assumption that is actually made:**
+between-cluster independence. Concretely — do parents belonging to the **same store** show correlated
+errors? If they do, parent-level clustering is too fine and the correct level is **store**, which is
+one level *up*, not down.
+
+There is already partial evidence pointing that way: store-level mean deviation spans +0.25 to +1.45
+across sellers (`docs/phase1b-size-deviation-probe.md` §4c), which is why λ is quoted at store
+clustering. **The threat was always upward in the hierarchy, and the refuter pointed downward.**
+That is the substantive lesson, and it is recorded as a defect in how the condition was written
+rather than in the data.
+
+### 10.5 Standing after this
+
+- The **style** question (§5.1): closed, and further corroborated.
+- The **correlation** question (§5.2): still open, and this test did not address it.
+- **A5's provisional default remains KEEP**, now on two grounds rather than one — assumption
+  minimality (§2.2), and the observation that heterogeneous asins are a reason against treating them
+  as independent.
+- **Outstanding and specified:** test between-parent, within-store error correlation. That is the
+  refuter that should have been written, and it is now written for next time.

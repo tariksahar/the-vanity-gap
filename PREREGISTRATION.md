@@ -880,6 +880,39 @@ an artefact of the wrong clustering, and the decision turns toward SPLIT.**
 Written before the measurement so a heterogeneous result cannot later be reread as supporting
 whatever is convenient.
 
+#### OUTCOME 2026-08-15: THE CONDITION FIRED, AND IT WAS MIS-SPECIFIED
+
+**Fired.** Multinomial dispersion across the 60 testable asins of `B07TVHSDMQ`: X2/df = 2.09,
+bootstrap p = 0.001. The designs under that listing are not draws from one fit distribution.
+
+**And the consequence written above does not follow.** A cluster-robust variance estimator permits an
+**arbitrary within-cluster covariance**; it assumes nothing about within-cluster homogeneity, so
+within-parent heterogeneity cannot contradict it. What would invalidate parent-level clustering is
+correlation *between* parents, which this test does not measure.
+
+The condition inherited the error corrected on 2026-08-15 (§11 A5, "the objection is not
+differential filtering"): it was written while KEEP was still being described as "assuming perfect
+correlation". Under that mistaken reading the inference held. Under the correct one there is no
+assumption for the evidence to contradict.
+
+**This is a pre-registered condition being declared non-binding, which is the move refutation
+conditions exist to prevent.** The reasoning is therefore stated so it can be checked rather than
+trusted: cluster-robust inference at level `g` requires independence BETWEEN level-`g` units and
+imposes no restriction WITHIN them; heterogeneity within a parent is evidence about the product, not
+about the estimator. **If that reasoning is wrong, the condition binds and the decision turns to
+SPLIT.**
+
+What the result does establish: the mega-listing is internally heterogeneous, which corroborates the
+§5.1 style finding independently. And heterogeneous asins are a reason to treat them as *less*
+interchangeable, so the evidence points **away** from SPLIT rather than toward it.
+
+**THE REFUTER THAT SHOULD HAVE BEEN WRITTEN**, and is hereby written for the outstanding question:
+do parents belonging to the **same store** show correlated errors? If they do, parent-level
+clustering is too fine and the correct level is **store** -- one level UP. Partial evidence already
+points that way (store-level mean deviation spans +0.25 to +1.45,
+`docs/phase1b-size-deviation-probe.md` §4c), which is why λ is quoted at store clustering. **The
+threat was always upward in the hierarchy and the condition pointed downward.**
+
 #### The objection to excluding is NOT "differential filtering"
 
 An earlier version objected on the ground that exclusion's incidence across cells is asymmetric.
