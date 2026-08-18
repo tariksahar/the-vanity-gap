@@ -653,6 +653,26 @@ amendment prompted by seeing a result must say so explicitly.
 | 2026-08-14 | **A7 - the ~80% precision gate replaced by an attenuation gate `λ >= λ_min`.** COMPLETE | 80% was an underived convention unconnected to the target effect size. See below. |
 | 2026-08-14 | **A6 - coding guide Rule 8 sharpened; Rule 1/4 boundary clarified.** COMPLETE | `calibration_stated` was duplicating `human_label`; four boundary rows needed a binding reading. See below. |
 
+### A9 - transfer condition on `λ`, `δ` and `Δp₀`
+
+**Dated 2026-08-15.** `λ`, `δ` and `Δp₀` are properties of the **analysis population**, not constants
+of the dictionary. They were measured on 149 hand labels from one window, one seller mix and one
+review register.
+
+**Binding:** a materially different analysis population -- a different corpus, a different window, a
+different scope, or a scale change that materially moves the composition -- **requires a fresh
+hand-labelling round** before those quantities may be quoted for it. New blind draw, new coding pass
+under the frozen guide, recomputed λ, δ and Δp₀.
+
+The cost is recorded now rather than discovered later: that is roughly 150-300 hand judgements per
+population, plus the re-derivation in `src/analysis/attenuation.py`.
+
+**A note on what "materially different" means here.** Scaling more deeply within
+`Clothing_Shoes_and_Jewelry` under the same window is the mildest case, since it samples the same
+population harder rather than a new one. But the share held by catalogue listings is itself one of
+the quantities being measured, and if it moves materially the labelled sample's composition moves
+with it. The trigger is a change in composition, not merely in `n`.
+
 ### A8 - the target effect size is LOCKED at 0.30 SD
 
 **Dated 2026-08-14. Fixed BEFORE the §11 A5 mega-listing decision, and before any
@@ -883,11 +903,14 @@ none. Fit homogeneity across designs cannot be computed. The **pre-registered re
 therefore neither triggered nor cleared**, and is reported that way rather than pressed into either
 branch.
 
-**And untestability does NOT favour SPLIT.** KEEP assumes errors are perfectly correlated across the
-12,725 designs -- the *most conservative* assumption. SPLIT assumes they are uncorrelated, and with
-about one observation per asin those rows become effectively independent -- the *least* conservative.
+**And untestability does NOT favour SPLIT.** A cluster-robust estimator imposes **no structure** on
+within-cluster correlation -- it requires only independence *between* clusters. So KEEP asserts
+**nothing** about how the 12,725 designs are correlated, while SPLIT asserts that correlation is
+**zero**. KEEP is **assumption-minimal**, not merely conservative, and the difference matters:
+conservatism is a preference, declining to assert an unmeasurable quantity is a standard.
+
 The MDE ordering (SPLIT 0.132 < EXCLUDE 0.156 < KEEP 0.412) is a mechanical restatement of how much
-correlation each option assumes away, **not evidence about which is right.**
+each option assumes away, **not evidence about which is right.**
 
 **4 -- the men's arm binds.**
 
@@ -905,12 +928,36 @@ locked 0.30 target.
 is honest at 0.412; it was that the standard errors would have been wrong by a factor of nearly four.
 §7.2a settles that with WCB. KEEP is now the option that assumes least *and* reports honestly.
 
+#### DECISION RULE: bound, do not choose
+
+The three options are not rival guesses at one right answer. They are **points on an interval in an
+unmeasurable parameter** -- the correlation of labelling errors across designs within a listing.
+SPLIT sits at the zero-correlation end; KEEP sits at the assumption-minimal end. When a parameter
+cannot be measured, the honest output is a **bound**, not a point. This is the same logic as the
+Manski-style bounds §5.2 already applies to selection.
+
+**BINDING:**
+
+1. **PRIMARY: KEEP**, on assumption-minimality. It asserts nothing about the unmeasurable
+   correlation.
+2. **SPLIT and EXCLUDE are reported as PRE-SPECIFIED SENSITIVITY**, always, whatever they show.
+3. **A finding is claimed only if it survives under KEEP.** If a result is significant only under
+   SPLIT, **that significance is a product of the independence assumption** and is written that way
+   -- as a statement about what follows *if* errors are uncorrelated across designs, not as a
+   finding.
+
+**Recorded alongside: SPLIT is also the worse-sized option.** Null rejection at nominal 5% is 0.100
+for SPLIT against 0.085 for EXCLUDE, and even under wild cluster bootstrap SPLIT sits at 0.070 --
+6,462 clusters of which most hold a single observation is its own problem for the approximation. So
+the option that buys the smallest MDE is also the one whose inference is least trustworthy, which is
+not a coincidence.
+
 #### The three positions
 
-1. **Keep** -- take the data as it is. Provisional default.
-2. **Exclude** -- and state the population change explicitly.
-3. **Split** -- cluster on `asin` for listings failing the structural test. Discards nothing and does
-   not pretend one listing is one style. Did not exist before the measurement.
+1. **Keep** -- take the data as it is. **Primary.**
+2. **Exclude** -- and state the population change explicitly. Sensitivity.
+3. **Split** -- cluster on `asin` for listings failing the structural test. Sensitivity, and the
+   assumption it imposes is named whenever it is quoted.
 
 ### A4 - the fixed-effects level, and the §7.1a correction
 

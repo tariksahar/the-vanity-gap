@@ -25,7 +25,7 @@ being loaded instead, the repository is in the wrong place — fix that before d
 | **Specification** | **Corrected 2026-08-11.** Style-level FE was unidentified; fixed effects move to garment category, seller becomes a covariate. `docs/phase1d-specification-error.md`. |
 | **Analysis window** | **2019 onward (5 years)**, set empirically 2026-08-11 — `docs/phase1c-time-window.md`. The old 12–18 month default gave 12 observations in the men's-lower anchor cell. |
 | **Sampling validity** | **Files are ordered (2026-08-11).** Prefix-based rates superseded; re-measuring under `--spread`. §5.13. |
-| **Current task** | Phase 2b — the women's-arm estimator (§4.2) → `docs/phase2-women-arm.md`. In parallel: hand-label `data/processed/precision_sample.csv`. |
+| **Current task** | **Scale test on `Clothing_Shoes_and_Jewelry`** — 15M reviews against a 1.5M-item index. Under KEEP the gate needs λ ≥ 1.37, which is impossible, so the question is whether depth fixes it. The escalation to CSJ already happened on 2026-08-08; there is no wider corpus pending. `docs/phase1h-a5-measurements.md` §8. |
 | **Schema** | Not written. Phase 1 settled the fields; write it with the Phase 2 adapters. |
 
 ---

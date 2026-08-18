@@ -69,22 +69,30 @@ toward SPLIT.*
 **It does not show that. It shows we cannot tell.** That is a third outcome, and it was not
 pre-specified. Reported as such rather than pressed into either branch.
 
-### 2.2 Untestability does NOT favour SPLIT — it makes SPLIT the aggressive choice
+### 2.2 Untestability does NOT favour SPLIT — and KEEP is assumption-MINIMAL, not merely conservative
 
-This inverts the intuition, and it is the most important thing in this document.
+An earlier draft of this section said parent-level clustering "assumes errors are perfectly
+correlated within the catalogue". **That is wrong and it understated KEEP.**
 
-| option | clustering assumption about the 12,725 designs | stance |
+A cluster-robust variance estimator **imposes no structure at all on within-cluster correlation** —
+it admits an arbitrary within-cluster covariance matrix. The only thing it requires is
+**independence between clusters**. So clustering at `parent_asin` is not a claim about how the
+12,725 designs are correlated; it is the **absence** of such a claim.
+
+| option | what it asserts about correlation across the 12,725 designs | |
 |---|---|---|
-| **KEEP** (cluster = parent) | errors are **perfectly correlated** within the catalogue | **most conservative** |
-| **SPLIT** (cluster = asin) | errors are **uncorrelated** across designs — and with ~1 observation per asin those rows are effectively **independent** | **least conservative** |
+| **KEEP** (cluster = parent) | **nothing.** Arbitrary within-parent correlation is permitted | **assumption-minimal** |
+| **SPLIT** (cluster = asin) | **zero.** Independence across designs is imposed | assumes an unmeasured quantity is 0 |
+| EXCLUDE | nothing — but only about the rows it retains | assumption-minimal on a smaller population |
 
-The truth is between them and is exactly what cannot be measured. So the MDE ordering —
-SPLIT 0.132 < EXCLUDE 0.156 < KEEP 0.412 — **is not evidence about which option is right.** It is a
-mechanical restatement of how much correlation each option assumes away. Any option that assumes
-less correlation will produce a smaller MDE, whether or not the assumption is true.
+**The distinction matters because conservatism is a preference and assumption-minimality is a
+virtue.** Preferring a wider interval is a taste; declining to assert something you cannot measure is
+a standard. Faced with a correlation that §2 established is **unmeasurable on this corpus**, the
+right posture is the method that does not pretend to know it.
 
-Reading the MDE ranking as support for SPLIT would be choosing the answer that assumes the most and
-calling it the most precise.
+The MDE ordering — SPLIT 0.132 < EXCLUDE 0.156 < KEEP 0.412 — is therefore a mechanical restatement
+of how much each option assumes away, not evidence about which is right. **Reading it as support for
+SPLIT would be selecting the option that asserts the most and calling it the most precise.**
 
 ---
 
@@ -195,14 +203,34 @@ that assumes least and now also reports honestly.
 
 ---
 
-## 5. Standing
+## 5. Two questions, separated
 
-A5 remains **open with provisional default KEEP**. What the measurements changed:
+They have been reading as one uncertainty and they are not.
+
+### 5.1 "Is it a style?" — CLOSED, and it needed no inference
+
+`B07TVHSDMQ` carries **12,725 distinct designs** under one listing. That is a directly observed
+count, not an estimate, and it does not meet the `DESIGN.md` §1.6 definition of a style. The review
+titles corroborate it — "The boiler tshirt", "Vote tshirt" under a civil-engineering slogan listing.
+**Closed. No further measurement can change it and none is pending.**
+
+### 5.2 "How are the errors correlated?" — OPEN, and unmeasurable here
+
+Whether labelling errors are correlated across those 12,725 designs is a different question, and it
+is the only one still open. §2 established it cannot be answered on this corpus: two asins carry
+five or more labelled reviews.
+
+**This is the question the clustering choice turns on, and it is not the same as the style
+question.** Answering the first does not answer the second, and conflating them made the whole thing
+read as a single unresolved doubt when one half is settled.
+
+## 6. Standing
+
+A5 remains **open with provisional default KEEP**, on the assumption-minimality argument of §2.2
+rather than on conservatism. What the measurements changed:
 
 - measurement 0 removes "the filters handle it" from the table;
-- measurement 1 establishes that the parent-clustering assumption is **untestable**, which is neither
-  the pre-registered refutation nor support, and which makes SPLIT the aggressive option rather than
-  the neutral one;
+- measurement 1 separates two questions that had been travelling together (§5.1);
 - measurement 4 confirms the men's arm binds and that KEEP alone falls outside the 0.30 target;
 - the WCB work moves the objection to KEEP from "wrong MDE" to "was going to have wrong standard
   errors", and then answers it.
@@ -210,3 +238,106 @@ A5 remains **open with provisional default KEEP**. What the measurements changed
 The decision still belongs to the repository owner. Nothing here consulted the outcome, and none of
 these measurements could have: whether a listing prints many designs onto one blank garment carries
 no information about `tau`.
+
+
+---
+
+## 7. The consequence, stated plainly
+
+**Under KEEP this corpus cannot pass the §4.1 gate, and no amount of dictionary work changes that.**
+
+```
+λ_min = MDE_design / MDE_target = 0.412 / 0.30 = 1.373
+```
+
+**λ ≤ 1 by construction.** A required λ above 1 is not a demanding threshold; it is an impossible
+one. The measurement cannot carry an effect of the target size no matter how good the dictionary is,
+because the shortfall is in the design, not in the instrument.
+
+| scenario | MDE_design | λ_min | attainable? |
+|---|---|---|---|
+| **KEEP** | 0.412 | **1.373** | **no — exceeds 1** |
+| EXCLUDE | 0.156 | 0.52 | yes |
+| SPLIT | 0.132 | 0.44 | yes |
+
+Measured λ is 0.741–0.878, so EXCLUDE and SPLIT clear their thresholds comfortably. **But they buy
+that pass with an assumption that §5.2 establishes cannot be checked.** SPLIT asserts independence
+across 12,725 designs; EXCLUDE discards the observations rather than modelling them.
+
+**This is a finding, not a failure.** Stated as such:
+
+> **This corpus, in this window, at this sample scale, cannot measure this effect without adding an
+> assumption it cannot verify.**
+
+That sentence is worth more than a marginal pass would have been. It is a specific, quantified
+statement about what the public data can and cannot support — which is, per `README.md`, part of the
+argument this project is making rather than an obstacle to it.
+
+What it does **not** say: that the effect is absent, that the design is wrong, or that Amazon is
+unusable. It says the current *scale* is insufficient under assumption-minimal clustering. Whether
+scale fixes it is measurable and is the next step (§8).
+
+
+---
+
+## 8. The next step is SCALE, not a wider corpus — a correction
+
+**The escalation this design planned has already happened.** `DESIGN.md` §7.1 wrote the sequence as
+`Amazon_Fashion` first, then `Clothing_Shoes_and_Jewelry` as the wider slice. That step was taken on
+2026-08-08 and it was **forced, not optional**: `Amazon_Fashion` has `categories` empty in 100% of a
+30,000-item sample, so it yields no gender and no body half and cannot produce a single cell of the
+estimand.
+
+**Every measurement in this project since then has run on `Clothing_Shoes_and_Jewelry`** — the
+window probe, the cluster probe, the style-definition probe, the precision draw, and all three A5
+measurements. There is no un-escalated corpus waiting. Verified against the run logs: all carry
+`Clothing_Shoes_and_Jewelry`.
+
+So "the gate fails on `Amazon_Fashion`, therefore escalate to `Clothing_Shoes_and_Jewelry`" is not
+available. **The gate fails on `Clothing_Shoes_and_Jewelry`, which is already the wider slice.**
+
+### 8.1 What the remaining lever actually is
+
+Not a different corpus — **more of this one.**
+
+| | used | available | fraction |
+|---|---|---|---|
+| reviews streamed | 3,000,000 | 66,000,000 | **4.5%** |
+| item index | 400,000 | 7,200,000 | **5.6%** |
+
+Both multiply into the join, so the labelled sample is a small fraction of what the corpus can yield.
+**MDE needs to improve by only 1.37× to bring KEEP inside the 0.30 target** (0.412 → 0.30), which is
+a 1.9× increase in effective sample size if the design effect holds constant.
+
+### 8.2 But whether it helps is genuinely open, and the previous claim is retracted
+
+"A wider corpus improves DEFF by itself" was asserted in conversation and **never measured**. It is
+retracted (`DESIGN.md` §5.9). At larger scale the design effect moves for competing reasons:
+
+- **more reviews per existing parent** raises `m_bar`, which raises DEFF;
+- **more parents entering** through a larger index lowers `m_bar` and adds clusters, which lowers it;
+- **the catalogue listings scale too**, and if they scale faster than conventional ones — which
+  measurement 0 already showed the *filters* do — CV worsens.
+
+MDE improves as `sqrt(DEFF / n)`, so the sign of the net effect is not predictable from either term
+alone. **It is measurable and is being measured**: a 15,000,000-review pass against a 1,500,000-item
+index, reporting cell counts, gradient cells, the structurally-failing share, the cluster-size
+distribution, CV, DEFF, and MDE under all three A5 scenarios.
+
+### 8.3 The condition that travels with any change of population
+
+Whether the population changes by widening scope or by scaling within it, the same rule applies and
+it is not cheap:
+
+> **`λ`, `δ` and `Δp₀` are properties of the analysis population, not constants of the dictionary.**
+
+They were measured on 149 hand labels drawn from a specific window, seller mix and review register.
+A different seller mix or a different review language does not inherit them. **A materially different
+analysis population requires a fresh hand-labelling round** — a new blind draw, a new coding pass
+under the frozen guide, and a re-computation of λ, δ and Δp₀.
+
+Scaling *within* `Clothing_Shoes_and_Jewelry` under the same window is the mildest version of this,
+since the population is the same one sampled more deeply — but the mega-listing share is one of the
+things being measured, and if it moves materially the labelled sample's composition moves with it.
+**Recorded as a transfer condition on §5.3 and A7, with its cost stated in advance rather than
+discovered when the numbers arrive.**
