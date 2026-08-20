@@ -379,9 +379,25 @@ Gradient cells: men 8,946 / 8,269 / 12,997, women 39,509 / 11,889 / 20,626.
 measured λ        =  0.878  [0.723, 1.000]     (§5.3 routing, store clustering)
 ```
 
-**0.617 is below the measured λ on both the point estimate and the interval's lower bound. The gate
-is attainable under KEEP — the assumption-minimal option — without excluding anything and without
-asserting independence across designs.**
+> **SUSPENDED — the two figures are not in the same clustering unit.** The MDE above is computed at
+> **parent-level** clustering (29,420 clusters); λ is quoted at **store level**. Store is coarser, so
+> `m_bar` and DEFF rise and the MDE worsens. Bracketed with existing modules, the comfortable pass
+> becomes **tangent** across almost the whole plausible range and fails outright if stores are much
+> coarser than parents:
+>
+> | stores per parent | m_bar | MDE @CV 18 | λ_min | vs λ lower bound 0.723 |
+> |---|---|---|---|---|
+> | 1.00 | 5.67 | 0.218 | 0.725 | tangent |
+> | 0.80 | 7.09 | 0.243 | 0.810 | tangent |
+> | 0.70 | 8.10 | 0.260 | 0.866 | tangent |
+> | 0.60 | 9.45 | 0.280 | 0.935 | **fails on the point estimate too** |
+>
+> **No pass is declared until store-level DEFF and MDE are measured**, and until §9.4's composition
+> question is settled — 3M → 15M moved composition by 10.7 points, and a population still in motion
+> is not a population. See `docs/handoff-2026-08-17.md` §3.1 and §3.2.
+
+At parent-level clustering, 0.617 sits below the measured λ on both the point estimate and the
+interval's lower bound.
 
 That reverses §7, whose qualifier "at this sample scale" was the load-bearing part.
 

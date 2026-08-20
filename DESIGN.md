@@ -25,8 +25,8 @@ being loaded instead, the repository is in the wrong place — fix that before d
 | **Specification** | **Corrected 2026-08-11.** Style-level FE was unidentified; fixed effects move to garment category, seller becomes a covariate. `docs/phase1d-specification-error.md`. |
 | **Analysis window** | **2019 onward (5 years)**, set empirically 2026-08-11 — `docs/phase1c-time-window.md`. The old 12–18 month default gave 12 observations in the men's-lower anchor cell. |
 | **Sampling validity** | **Files are ordered (2026-08-11).** Prefix-based rates superseded; re-measuring under `--spread`. §5.13. |
-| **Scale** | **Depth fixes the gate.** At 15M reviews / 1.5M items, MDE under KEEP falls 0.412 → **0.185**, so λ_min = 0.617 against a measured λ of 0.878 [0.723, 1.000] — attainable on point *and* interval, under the assumption-minimal option. DEFF got *worse* (31.6 → 67.6); depth won through n regardless. `docs/phase1h-a5-measurements.md` §9. |
-| **Current task** | Test between-parent, within-store error correlation — the refuter that should have been written. A5's default stays KEEP meanwhile. `docs/phase1h-a5-measurements.md` §10. |
+| **Scale** | At 15M reviews / 1.5M items, MDE under KEEP falls 0.412 → **0.185** at **parent-level** clustering. **GATE DECLARATION SUSPENDED**: λ is quoted at *store* level, and bracketing puts the store-level verdict at **tangent** across most of the plausible range. DEFF got *worse* (31.6 → 67.6); depth won through n regardless. `docs/phase1h-a5-measurements.md` §9. |
+| **Current task** | **See `docs/handoff-2026-08-17.md`.** Blocking: store-level DEFF/MDE (§3.1) and whether the analysis population has converged (§3.2). Then the between-parent within-store correlation test (§3.3). A5 default stays KEEP. |
 | **Schema** | Not written. Phase 1 settled the fields; write it with the Phase 2 adapters. |
 
 ---
@@ -953,6 +953,7 @@ the-vanity-gap/
     phase1f-attenuation.md
     phase1g-style-definition.md
     phase1h-a5-measurements.md
+    handoff-2026-08-17.md
     coding-guide.md
     phase2-dictionary-validation.md
   src/
